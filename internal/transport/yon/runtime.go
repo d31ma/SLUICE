@@ -204,7 +204,7 @@ func (server *Server) stop(ctx context.Context) error {
 	select {
 	case err := <-server.done:
 		if err != nil {
-			return fmt.Errorf("tachyon exited unsuccessfully")
+			return fmt.Errorf("tachyon exited unsuccessfully: %w", err)
 		}
 		return nil
 	case <-ctx.Done():

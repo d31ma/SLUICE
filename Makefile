@@ -3,7 +3,7 @@ ACTIVE_GO := $(shell $(GO) env GOROOT)/bin/go
 
 .DEFAULT_GOAL := help
 
-.PHONY: help bootstrap fmt fmt-check vet lint test test-race crap vuln licenses docs runtime-contract runtime-stage-macos build check
+.PHONY: help bootstrap fmt fmt-check vet lint test test-race crap vuln licenses docs workflows runtime-contract app-bundle-contract runtime-stage-macos app-package-macos app-runtime-qualify-macos filesystem-qualify-macos build check
 
 help:
 	@echo "Sluice development commands"
@@ -11,7 +11,11 @@ help:
 	@echo "  make fmt        format Go source"
 	@echo "  make check      run the complete local quality gate"
 	@echo "  make runtime-contract  validate pinned runtime bundle metadata"
+	@echo "  make workflows  validate immutable GitHub Actions references"
 	@echo "  make runtime-stage-macos  stage and execute the macOS arm64 runtime payload"
+	@echo "  make app-package-macos  stage and exercise an unsigned native macOS arm64 Sluice.app"
+	@echo "  make app-runtime-qualify-macos  record a ten-minute native packaged-process baseline"
+	@echo "  make filesystem-qualify-macos  run native arm64 APFS destructive fixtures in an isolated image"
 	@echo "  make build      build all Go packages"
 
 bootstrap:
@@ -48,13 +52,28 @@ licenses:
 docs:
 	./scripts/check-docs.sh
 
+workflows:
+	./scripts/check-workflows.sh
+
 runtime-contract:
 	./scripts/test-runtime-bundle-contract.sh
+
+app-bundle-contract:
+	./scripts/check-app-bundle-contract.sh
 
 runtime-stage-macos:
 	./scripts/test-runtime-bundle-macos.sh
 
+app-package-macos:
+	./scripts/test-app-bundle-macos.sh
+
+app-runtime-qualify-macos:
+	./scripts/qualify-app-runtime-macos.sh
+
+filesystem-qualify-macos:
+	./scripts/test-filesystem-macos.sh
+
 build:
 	$(GO) build ./...
 
-check: fmt-check vet lint test-race crap vuln licenses docs runtime-contract build
+check: fmt-check vet lint test-race crap vuln licenses docs workflows runtime-contract app-bundle-contract build

@@ -5,6 +5,7 @@ package filesystem_test
 import (
 	"bytes"
 	"context"
+	"crypto/rand"
 	"crypto/sha256"
 	"errors"
 	"io"
@@ -23,6 +24,11 @@ import (
 const (
 	forcedInterruptionRoot = "SLUICE_FS_INTERRUPTION_ROOT"
 	writeLimitRoot         = "SLUICE_FS_WRITE_LIMIT_ROOT"
+	enospcRoot             = "SLUICE_FS_ENOSPC_ROOT"
+	requireAPFSCollisions  = "SLUICE_FS_REQUIRE_APFS_COLLISIONS"
+	requireRenameBoundary  = "SLUICE_FS_REQUIRE_RENAME_BOUNDARY"
+	renameBoundaryRoot     = "SLUICE_FS_RENAME_BOUNDARY_ROOT"
+	renameBoundaryBytes    = 64 * 1024 * 1024
 )
 
 func TestAtomicInstallerContainsHostileParentSwap(t *testing.T) {
@@ -215,6 +221,196 @@ func TestAtomicInstallerWriteLimitChild(t *testing.T) {
 	}
 	assertNoTemporaryFiles(t, rootPath)
 	os.Exit(0) // The isolated child must exit before its deliberately tiny file limit blocks coverage metadata.
+}
+
+func TestAtomicInstallerCleansUpAfterAPFSENOSPC(t *testing.T) {
+	volumeRoot := os.Getenv(enospcRoot)
+	if volumeRoot == "" {
+		return
+	}
+	rootPath, err := os.MkdirTemp(volumeRoot, ".sluice-enospc-")
+	if err != nil {
+		t.Fatalf("MkdirTemp(APFS volume) error = %v", err)
+	}
+	t.Cleanup(func() { _ = os.RemoveAll(rootPath) }) //nolint:gosec // Child directory of the explicitly isolated qualification volume.
+
+	reserve := filepath.Join(rootPath, "space-reserve")
+	writeRandomFile(t, reserve, 8*1024*1024)
+	fillAPFSVolume(t, filepath.Join(rootPath, "filler"))
+	if removeErr := os.Remove(reserve); removeErr != nil { //nolint:gosec // Test-owned path beneath the isolated qualification volume.
+		t.Fatalf("Remove(space reserve) error = %v", removeErr)
+	}
+	if syncErr := unix.Sync(); syncErr != nil {
+		t.Fatalf("Sync(APFS volume) error = %v", syncErr)
+	}
+
+	content := randomBytes(t, 16*1024*1024)
+	source := bytes.NewReader(content)
+	installer := newInstaller(t, rootPath)
+	_, err = installer.Install(context.Background(), filesystem.InstallRequest{
+		Path:           mustLogicalPath(t, "file.bin"),
+		Source:         source,
+		ExpectedSHA256: sha256.Sum256(content),
+	})
+	if !errors.Is(err, syscall.ENOSPC) {
+		t.Fatalf("Install() error = %v, want ENOSPC", err)
+	}
+	if got := filesystem.CodeOf(err); got != filesystem.CodeIO {
+		t.Fatalf("CodeOf(ENOSPC) = %q, want %q", got, filesystem.CodeIO)
+	}
+	consumed := len(content) - source.Len()
+	if consumed == 0 || consumed == len(content) {
+		t.Fatalf("source bytes consumed = %d, want a partial write", consumed)
+	}
+	if _, err := os.Stat(filepath.Join(rootPath, "file.bin")); !os.IsNotExist(err) { //nolint:gosec // Test-owned path.
+		t.Fatalf("destination error = %v, want not-exist", err)
+	}
+	assertNoTemporaryFiles(t, rootPath)
+}
+
+func TestAtomicInstallerFailsClosedOnAPFSCollisions(t *testing.T) {
+	if os.Getenv(requireAPFSCollisions) == "" {
+		return
+	}
+	tests := []struct {
+		name   string
+		first  string
+		second string
+	}{
+		{name: "case", first: "Report.txt", second: "report.txt"},
+		{name: "normalization", first: "Caf\u00e9.txt", second: "Cafe\u0301.txt"},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			rootPath := t.TempDir()
+			installer := newInstaller(t, rootPath)
+			installContent(t, installer, test.first, []byte("first version"))
+			content := []byte("must not replace")
+			_, err := installer.Install(context.Background(), filesystem.InstallRequest{
+				Path:           mustLogicalPath(t, test.second),
+				Source:         bytes.NewReader(content),
+				ExpectedSHA256: sha256.Sum256(content),
+			})
+			if !errors.Is(err, filesystem.ErrDestinationExists) {
+				t.Fatalf("Install(%q after %q) error = %v, want destination collision", test.second, test.first, err)
+			}
+			got, readErr := os.ReadFile(filepath.Join(rootPath, test.first)) //nolint:gosec // Test-owned APFS path.
+			if readErr != nil || string(got) != "first version" {
+				t.Fatalf("first version after collision = %q, %v", got, readErr)
+			}
+		})
+	}
+}
+
+func TestAtomicInstallerRecoversAfterPreRenameTermination(t *testing.T) {
+	if os.Getenv(requireRenameBoundary) == "" {
+		return
+	}
+	rootPath := t.TempDir()
+	command := exec.Command(os.Args[0], "-test.run=^TestAtomicInstallerPreRenameChild$") //nolint:gosec // Exact current test binary; no shell.
+	command.Env = append(os.Environ(), renameBoundaryRoot+"="+rootPath)
+	if err := command.Start(); err != nil {
+		t.Fatalf("Start(pre-rename child) error = %v", err)
+	}
+	waitForFullTemporary(t, rootPath, renameBoundaryBytes)
+	if err := command.Process.Signal(syscall.SIGSTOP); err != nil {
+		t.Fatalf("Stop(pre-rename child) error = %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(rootPath, "file.bin")); !os.IsNotExist(err) {
+		_ = command.Process.Kill()
+		_ = command.Wait()
+		t.Fatalf("destination reached rename before stop: %v", err)
+	}
+	if err := command.Process.Kill(); err != nil {
+		t.Fatalf("Kill(pre-rename child) error = %v", err)
+	}
+	if err := command.Wait(); err == nil {
+		t.Fatal("pre-rename child exited successfully")
+	}
+	assertTemporaryFileCount(t, rootPath, 1)
+
+	installer := newInstaller(t, rootPath)
+	installContent(t, installer, "file.bin", []byte("recovered after pre-rename termination"))
+	assertNoTemporaryFiles(t, rootPath)
+}
+
+func TestAtomicInstallerPreRenameChild(t *testing.T) {
+	rootPath := os.Getenv(renameBoundaryRoot)
+	if rootPath == "" {
+		return
+	}
+	content := bytes.Repeat([]byte("r"), renameBoundaryBytes)
+	installer := newInstaller(t, rootPath)
+	_, err := installer.Install(context.Background(), filesystem.InstallRequest{
+		Path:           mustLogicalPath(t, "file.bin"),
+		Source:         bytes.NewReader(content),
+		ExpectedSHA256: sha256.Sum256(content),
+	})
+	t.Fatalf("Install() crossed the pre-rename observation window: %v", err)
+}
+
+func waitForFullTemporary(t *testing.T, rootPath string, size int64) {
+	t.Helper()
+	deadline := time.Now().Add(15 * time.Second)
+	for time.Now().Before(deadline) {
+		matches, err := filepath.Glob(filepath.Join(rootPath, ".sluice-install-*.tmp"))
+		if err != nil {
+			t.Fatalf("Glob(pre-rename temporary) error = %v", err)
+		}
+		if len(matches) == 1 {
+			info, statErr := os.Stat(matches[0])
+			if statErr == nil && info.Size() == size {
+				return
+			}
+		}
+	}
+	t.Fatal("timed out before the temporary reached the pre-rename boundary")
+}
+
+func fillAPFSVolume(t *testing.T, path string) {
+	t.Helper()
+	file, err := os.OpenFile(path, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o600) //nolint:gosec // Test-owned isolated image.
+	if err != nil {
+		t.Fatalf("OpenFile(filler) error = %v", err)
+	}
+	defer func() { _ = file.Close() }()
+	block := randomBytes(t, 1024*1024)
+	for range 256 {
+		if _, err := file.Write(block); errors.Is(err, syscall.ENOSPC) {
+			return
+		} else if err != nil {
+			t.Fatalf("Write(filler) error = %v, want ENOSPC", err)
+		}
+	}
+	t.Fatal("isolated APFS volume accepted 256 MiB without ENOSPC")
+}
+
+func writeRandomFile(t *testing.T, path string, size int) {
+	t.Helper()
+	if err := os.WriteFile(path, randomBytes(t, size), 0o600); err != nil { //nolint:gosec // Test-owned isolated image.
+		t.Fatalf("WriteFile(space reserve) error = %v", err)
+	}
+}
+
+func randomBytes(t *testing.T, size int) []byte {
+	t.Helper()
+	value := make([]byte, size)
+	if _, err := io.ReadFull(rand.Reader, value); err != nil {
+		t.Fatalf("ReadFull(random) error = %v", err)
+	}
+	return value
+}
+
+func installContent(t *testing.T, installer *filesystem.AtomicInstaller, path string, content []byte) {
+	t.Helper()
+	_, err := installer.Install(context.Background(), filesystem.InstallRequest{
+		Path:           mustLogicalPath(t, path),
+		Source:         bytes.NewReader(content),
+		ExpectedSHA256: sha256.Sum256(content),
+	})
+	if err != nil {
+		t.Fatalf("Install(%q) error = %v", path, err)
+	}
 }
 
 func waitForFile(t *testing.T, path string) {

@@ -19,9 +19,12 @@ const (
 	connectionDeadline        = 30 * time.Second
 )
 
-// ServerConfig configures one loopback-only agent protocol listener.
+// ServerConfig configures one local agent protocol listener. Network is
+// required unless Address explicitly selects the diagnostic loopback TCP
+// compatibility mode.
 type ServerConfig struct {
 	Handler            http.Handler
+	Network            string
 	Address            string
 	Capability         string
 	MaximumConnections int
@@ -32,25 +35,32 @@ type Server struct {
 	handler    http.Handler
 	listener   net.Listener
 	runContext context.Context
+	closeErr   error
 	cancel     context.CancelFunc
 	slots      chan struct{}
 	closed     chan struct{}
+	cleanup    func() error
 	descriptor Descriptor
+	workers    sync.WaitGroup
 	admission  sync.Mutex
 	closeOnce  sync.Once
 	stopping   bool
-	workers    sync.WaitGroup
 }
 
-// Listen binds an explicit loopback TCP address without starting the accept
-// loop. Port zero is permitted and resolved in Descriptor.
+// Listen binds an explicit local endpoint without starting the accept loop.
+// An omitted Network with a non-empty Address selects diagnostic loopback TCP
+// for compatibility with contract tests and troubleshooting tools.
 func Listen(config ServerConfig) (*Server, error) {
 	if config.Handler == nil {
 		return nil, fmt.Errorf("agent IPC handler is required")
 	}
+	network := config.Network
+	if network == "" && config.Address != "" {
+		network = "tcp"
+	}
 	probe := Descriptor{
 		ProtocolVersion: ProtocolVersion,
-		Network:         "tcp",
+		Network:         network,
 		Address:         config.Address,
 		Capability:      config.Capability,
 	}
@@ -64,7 +74,7 @@ func Listen(config ServerConfig) (*Server, error) {
 	if maximum < 1 || maximum > 1024 {
 		return nil, fmt.Errorf("maximum agent IPC connections must be within 1..1024")
 	}
-	listener, err := net.Listen("tcp", config.Address)
+	listener, cleanup, err := listenTransport(probe.Network, probe.Address)
 	if err != nil {
 		return nil, fmt.Errorf("listen for Sluice agent IPC: %w", err)
 	}
@@ -79,7 +89,23 @@ func Listen(config ServerConfig) (*Server, error) {
 		descriptor: descriptor,
 		slots:      make(chan struct{}, maximum),
 		closed:     make(chan struct{}),
+		cleanup:    cleanup,
 	}, nil
+}
+
+// ListenNative binds the platform's production local transport: a Unix-domain
+// socket on macOS/Linux or a current-user-only named pipe on Windows.
+func ListenNative(config ServerConfig, sessionFile string) (*Server, error) {
+	if config.Network != "" || config.Address != "" {
+		return nil, fmt.Errorf("native agent IPC does not accept an explicit endpoint")
+	}
+	network, address, err := nativeEndpoint(sessionFile, config.Capability)
+	if err != nil {
+		return nil, err
+	}
+	config.Network = network
+	config.Address = address
+	return Listen(config)
 }
 
 // Descriptor returns the immutable connection information for this server.
@@ -177,13 +203,20 @@ func (server *Server) handle(frame wireRequest) wireResponse {
 
 // Close stops acceptance and waits for active bounded requests to drain.
 func (server *Server) Close(ctx context.Context) error {
-	var closeErr error
 	server.closeOnce.Do(func() {
 		server.admission.Lock()
 		server.stopping = true
 		close(server.closed)
 		server.cancel()
-		closeErr = server.listener.Close()
+		listenerErr := server.listener.Close()
+		if errors.Is(listenerErr, net.ErrClosed) {
+			listenerErr = nil
+		}
+		var cleanupErr error
+		if server.cleanup != nil {
+			cleanupErr = server.cleanup()
+		}
+		server.closeErr = errors.Join(listenerErr, cleanupErr)
 		server.admission.Unlock()
 	})
 	done := make(chan struct{})
@@ -195,8 +228,8 @@ func (server *Server) Close(ctx context.Context) error {
 	case <-ctx.Done():
 		return fmt.Errorf("wait for agent IPC shutdown: %w", ctx.Err())
 	case <-done:
-		if closeErr != nil && !errors.Is(closeErr, net.ErrClosed) {
-			return fmt.Errorf("close agent IPC listener: %w", closeErr)
+		if server.closeErr != nil {
+			return fmt.Errorf("close agent IPC listener: %w", server.closeErr)
 		}
 		return nil
 	}

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 	"testing"
@@ -25,7 +26,6 @@ func TestServiceOwnsStateAndServesAuthenticatedHealthUntilShutdown(t *testing.T)
 		Idempotency: localapi.NewMemoryIdempotencyStore(),
 		APIToken:    apiToken,
 		SessionFile: sessionFile,
-		Listen:      "127.0.0.1:0",
 	})
 	if err != nil {
 		t.Fatalf("create service: %v", err)
@@ -35,6 +35,13 @@ func TestServiceOwnsStateAndServesAuthenticatedHealthUntilShutdown(t *testing.T)
 	go func() { done <- service.Run(ctx) }()
 
 	descriptor := awaitDescriptor(t, sessionFile)
+	wantNetwork := "unix"
+	if runtime.GOOS == "windows" {
+		wantNetwork = "npipe"
+	}
+	if descriptor.Network != wantNetwork {
+		t.Fatalf("default agent network = %q, want %q", descriptor.Network, wantNetwork)
+	}
 	client, err := ipc.NewClient(descriptor)
 	if err != nil {
 		t.Fatalf("create client: %v", err)

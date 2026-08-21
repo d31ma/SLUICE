@@ -4,23 +4,33 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 	"time"
 
 	"fyne.io/fyne/v2"
 	fyneapp "fyne.io/fyne/v2/app"
+	"github.com/d31ma/sluice/internal/desktop/lifecycle"
 	"github.com/d31ma/sluice/internal/platform/autostart"
+	runtimeexec "github.com/d31ma/sluice/internal/runtime"
 	appui "github.com/d31ma/sluice/ui/app"
 )
 
-const nativeSmokeDuration = 1500 * time.Millisecond
+const (
+	nativeSmokeDuration    = 1500 * time.Millisecond
+	packagedRuntimeVersion = "26.33.02"
+	runtimeShutdownTimeout = 8 * time.Second
+)
 
 type desktopOptions struct {
+	executable  string
+	stateRoot   string
 	background  bool
 	nativeSmoke bool
 }
@@ -37,6 +47,12 @@ type desktopShell interface {
 	RequestQuit()
 	Run()
 }
+
+type runtimeSession interface {
+	Close(context.Context) error
+}
+
+type runtimeStarter func(context.Context, desktopOptions) (runtimeSession, error)
 
 func main() {
 	executable, err := os.Executable()
@@ -72,6 +88,7 @@ func run(
 	flags.SetOutput(stderr)
 	background := flags.Bool("background", false, "start in the system tray without opening the window")
 	nativeSmoke := flags.Bool("native-smoke", false, "exercise the native window, tray, notification, and shutdown lifecycle")
+	stateRoot := flags.String("qualification-state-root", "", "use an isolated state root during --native-smoke")
 	if err := flags.Parse(args); err != nil {
 		return 2
 	}
@@ -81,11 +98,33 @@ func run(
 		}
 		return 2
 	}
-	if err := startDesktop(ctx, desktopOptions{background: *background, nativeSmoke: *nativeSmoke}); err != nil {
+	if err := validateQualificationStateRoot(*nativeSmoke, *stateRoot); err != nil {
+		writeError(stderr, err)
+		return 2
+	}
+	if err := startDesktop(ctx, desktopOptions{
+		background:  *background,
+		nativeSmoke: *nativeSmoke,
+		executable:  executable,
+		stateRoot:   *stateRoot,
+	}); err != nil {
 		writeError(stderr, err)
 		return 1
 	}
 	return 0
+}
+
+func validateQualificationStateRoot(nativeSmoke bool, stateRoot string) error {
+	if stateRoot == "" {
+		return nil
+	}
+	if !nativeSmoke {
+		return fmt.Errorf("--qualification-state-root requires --native-smoke")
+	}
+	if !filepath.IsAbs(stateRoot) {
+		return fmt.Errorf("--qualification-state-root must be absolute")
+	}
+	return nil
 }
 
 func runAutostart(
@@ -140,6 +179,66 @@ func writeError(writer io.Writer, err error) {
 }
 
 func runDesktop(ctx context.Context, options desktopOptions) error {
+	return runDesktopWithLifecycle(ctx, options, startPackagedRuntime, func() error {
+		runFyneDesktop(ctx, options)
+		return nil
+	})
+}
+
+func runDesktopWithLifecycle(
+	ctx context.Context,
+	options desktopOptions,
+	startRuntime runtimeStarter,
+	runUI func() error,
+) error {
+	session, err := startRuntime(ctx, options)
+	if err != nil {
+		return err
+	}
+	uiErr := runUI()
+	if session == nil {
+		return uiErr
+	}
+	shutdown, cancel := context.WithTimeout(context.Background(), runtimeShutdownTimeout)
+	defer cancel()
+	return errors.Join(uiErr, session.Close(shutdown))
+}
+
+func startPackagedRuntime(ctx context.Context, options desktopOptions) (runtimeSession, error) {
+	coordinator, packaged, err := openPackagedCoordinator(options)
+	if err != nil {
+		return nil, err
+	}
+	if !packaged {
+		return nil, nil
+	}
+	return startCoordinator(ctx, coordinator)
+}
+
+func startCoordinator(ctx context.Context, coordinator *lifecycle.Coordinator) (runtimeSession, error) {
+	session, err := coordinator.Start(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("start packaged runtime: %w", err)
+	}
+	return session, nil
+}
+
+func openPackagedCoordinator(options desktopOptions) (*lifecycle.Coordinator, bool, error) {
+	coordinator, err := lifecycle.NewMacOSPackaged(
+		options.executable,
+		options.stateRoot,
+		packagedRuntimeVersion,
+	)
+	if errors.Is(err, runtimeexec.ErrNotPackaged) {
+		return nil, false, nil
+	}
+	if err != nil {
+		return nil, false, fmt.Errorf("open packaged runtime: %w", err)
+	}
+	return coordinator, true, nil
+}
+
+func runFyneDesktop(ctx context.Context, options desktopOptions) {
 	fyneapp.SetMetadata(fyne.AppMetadata{
 		ID:         applicationID(),
 		Name:       "Sluice",
@@ -151,7 +250,6 @@ func runDesktop(ctx context.Context, options desktopOptions) error {
 	shell := appui.NewDesktopShell(application)
 	showDesktopShell(shell, options)
 	runDesktopShell(ctx, shell, options.nativeSmoke)
-	return nil
 }
 
 func showDesktopShell(shell desktopShell, options desktopOptions) {

@@ -53,12 +53,13 @@ plan is recorded.
 
 ## Fylo rules
 
-- Use the version-matched Fylo binary and Go shim.
+- Use the version-matched Fylo binary and the ADR 0008 focused protocol
+  supervisor until a matching released Go shim passes the same contract.
 - Require a successful handshake and known capability versions before opening
   production state.
-- Run one warm Fylo process with exclusive-root ownership. Until Fylo's Go shim
-  exposes `--exclusive-root`, treat that missing option as a Phase 1 dependency
-  gate rather than weakening the guarantee.
+- Run one warm Fylo process with exclusive-root ownership. The focused
+  supervisor must pass `--exclusive-root`; never weaken the guarantee because
+  the released Go shim lacks the option.
 - Keep the Fylo root outside every synchronized root and on a supported local
   filesystem.
 - Keep Fylo's optional remote sync hooks disabled for the Sluice state root;

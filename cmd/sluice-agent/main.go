@@ -98,7 +98,7 @@ func agentFlagSet(config *options) *flag.FlagSet {
 	flags.StringVar(&config.fyloVersion, "fylo-version", "", "required Fylo runtime version")
 	flags.StringVar(&config.apiToken, "api-token-file", "", "absolute path to the local API token")
 	flags.StringVar(&config.sessionFile, "session-file", "", "absolute path to the private session descriptor")
-	flags.StringVar(&config.listen, "listen", "127.0.0.1:0", "loopback agent IPC address")
+	flags.StringVar(&config.listen, "listen", "", "diagnostic loopback TCP address; omitted uses native local IPC")
 	return flags
 }
 

@@ -11,6 +11,7 @@ tool (
 
 require (
 	fyne.io/fyne/v2 v2.8.0
+	github.com/Microsoft/go-winio v0.6.2
 	github.com/aws/aws-sdk-go-v2 v1.43.7
 	github.com/aws/aws-sdk-go-v2/config v1.32.38
 	github.com/aws/aws-sdk-go-v2/credentials v1.19.37

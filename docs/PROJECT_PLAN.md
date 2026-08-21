@@ -85,7 +85,7 @@ format version, and compatibility ADR.
 | Primary language | Go | Required project direction; strong concurrency and cross-compilation support. |
 | Backend framework | Tachyon Yon | Required project direction; versioned REST boundary and supervised executable handlers. |
 | Desktop frontend | Fyne | One Go UI codebase, native application packaging, and built-in system-tray support on Windows, macOS, and Linux. |
-| Local state | Fylo | Filesystem-first recovery, Go shim, bounded machine protocol, rebuildable indexes, exclusive-root ownership, and durable queues. |
+| Local state | Fylo | Filesystem-first recovery, focused Go supervisor, bounded machine protocol, rebuildable indexes, exclusive-root ownership, and durable queues. |
 | Remote storage | S3-compatible API | User-controlled storage and broad provider compatibility. |
 | Desktop process model | Fyne shell + Yon server + Go agent + Fylo child | Keeps UI, API supervision, long-running sync, and durable local storage in explicit lifecycle boundaries. |
 | Mobile direction | Shared Fyne views plus mobile platform adapters | Preserves shared UI and Go domain logic while accepting mobile storage and background-execution constraints. |
@@ -112,7 +112,7 @@ release tier.
 | notifications    |      | Go handlers    |      | watchers/workers |
 +------------------+      +----------------+      +---------+--------+
                                                             |
-                                                   one warm Go shim
+                                              one warm focused supervisor
                                                             |
                                                    +--------v--------+
                                                    | Fylo executable |
@@ -210,13 +210,16 @@ Rules:
 
 - The path is canonicalized before use.
 - The agent starts Fylo with `--exclusive-root`.
-- Phase 1 must consume or contribute a Fylo Go-shim option that passes
-  `--exclusive-root`; the current omission may not be hidden behind a
-  best-effort lock.
+- Phase 1 must use a version-matched integration that passes
+  `--exclusive-root`. ADR 0008 selects the focused Sluice protocol supervisor
+  until a matching released Go shim exposes and qualifies the same option; the
+  requirement may never be weakened to a best-effort lock.
 - A second owner fails closed and presents an actionable diagnostic.
 - A network drive, object-backed mount, or independently synchronized
   directory is not a valid Fylo root.
-- Fylo and its Go shim are pinned to the same release and shipped together.
+- Fylo and its production integration are pinned to the same qualified release
+  identity and shipped together. ADR 0008 currently selects the focused
+  supervisor rather than the released shim.
 - A capability or protocol mismatch prevents synchronization and leaves user
   files untouched.
 - Fylo's optional S3/GCS sync hooks remain disabled for the Sluice state root.
@@ -561,8 +564,9 @@ Vertical spikes:
 Deliverables:
 
 - JSON Schemas for local API v1 and remote protocol v1.
-- A released or vendored Fylo Go shim with an explicit exclusive-root option
-  and a contract test proving the flag is effective.
+- A version-matched Fylo integration with an explicit exclusive-root option and
+  a black-box contract proving the flag is effective. ADR 0008 qualifies the
+  focused Sluice protocol supervisor for Fylo 26.33.02.
 - Black-box contract tests for process restart, API authentication, Fylo
   mismatch, duplicate requests, and S3 conditional failures.
 - Recorded reference-hardware performance baselines.
@@ -571,7 +575,8 @@ Deliverables:
 Acceptance gate:
 
 - All five spikes pass on their named native environments.
-- The final installers can legally and technically bundle `ty` and `fylo`.
+- The unsigned target package topologies can legally and technically bundle
+  the pinned `ty` and `fylo` runtimes and required notices.
 - No production phase depends on an unimplemented Tachyon or Fylo behavior.
 
 ### Phase 2 - Local catalog and deterministic scanner
@@ -844,9 +849,9 @@ Android, iOS, and individual placeholder adapters are promoted independently.
 | Risk | Impact | Mitigation and decision point |
 | --- | --- | --- |
 | Yon executable lifecycle conflicts with a long-running sync engine | Lost state or repeated process startup | Keep the agent persistent and make Yon a thin IPC bridge; prove in Phase 1. |
-| Fylo protocol/client mismatch | State unavailable or unsafe writes | Pin binary and Go shim, require handshake/capabilities, fail closed. |
+| Fylo protocol/client mismatch | State unavailable or unsafe writes | Pin binary and production integration, require handshake/capabilities, fail closed. |
 | Multiple writers open one Fylo root | Catalog corruption or inconsistent work claims | One agent, exclusive-root lease, native single-instance tests. |
-| Fylo Go shim cannot currently request exclusive-root mode | Single-owner guarantee could be accidentally omitted | Add and qualify the explicit shim option in Phase 1, or use a focused protocol supervisor until the matching Fylo release. |
+| Fylo Go shim cannot currently request exclusive-root mode | Single-owner guarantee could be accidentally omitted | ADR 0008 selects the qualified focused protocol supervisor until a matching released shim passes the same suite. |
 | Fyne does not meet desired native appearance/accessibility | Poor UX or product rejection | Native Phase 1 prototype and accessibility gate before engine investment. |
 | S3-compatible providers differ materially | Data loss or stuck synchronization | Provider qualification suite and explicit supported profiles. |
 | Remote manifest protocol is underspecified | Silent overwrite or non-convergence | Freeze schemas, conditional-write rules, and model tests in Phase 1. |

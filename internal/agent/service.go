@@ -68,9 +68,6 @@ func NewService(config Config) (*Service, error) {
 		return nil, fmt.Errorf("configure local API: %w", err)
 	}
 	listen := config.Listen
-	if listen == "" {
-		listen = "127.0.0.1:0"
-	}
 	return &Service{
 		state:       config.State,
 		handler:     handler,
@@ -99,8 +96,7 @@ func (service *Service) Run(ctx context.Context) error {
 	if err != nil {
 		return service.closeStateAfterError(err)
 	}
-	server, err := ipc.Listen(ipc.ServerConfig{
-		Address:    service.listen,
+	server, err := service.listenForIPC(ipc.ServerConfig{
 		Capability: capability,
 		Handler:    service.handler,
 	})
@@ -127,6 +123,15 @@ func (service *Service) Run(ctx context.Context) error {
 		runErr = nil
 	}
 	return errors.Join(runErr, serverErr, stateErr)
+}
+
+func (service *Service) listenForIPC(config ipc.ServerConfig) (*ipc.Server, error) {
+	if service.listen == "" {
+		return ipc.ListenNative(config, service.sessionFile)
+	}
+	config.Network = "tcp"
+	config.Address = service.listen
+	return ipc.Listen(config)
 }
 
 func (service *Service) closeStateAfterError(cause error) error {

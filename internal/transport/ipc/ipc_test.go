@@ -83,6 +83,22 @@ func TestClientFailsClosedOnProtocolMismatch(t *testing.T) {
 	}
 }
 
+func TestExplicitTCPRejectsNonLoopbackAddress(t *testing.T) {
+	capability, err := ipc.NewCapability()
+	if err != nil {
+		t.Fatalf("create capability: %v", err)
+	}
+	_, err = ipc.Listen(ipc.ServerConfig{
+		Network:    "tcp",
+		Address:    "0.0.0.0:0",
+		Capability: capability,
+		Handler:    http.HandlerFunc(func(http.ResponseWriter, *http.Request) {}),
+	})
+	if !errors.Is(err, ipc.ErrUnavailable) {
+		t.Fatalf("Listen(non-loopback) error = %v, want ErrUnavailable", err)
+	}
+}
+
 func TestClientRejectsOversizedRequestBeforeDial(t *testing.T) {
 	server, client := startServer(t, http.HandlerFunc(func(http.ResponseWriter, *http.Request) {}))
 	defer closeServer(t, server)

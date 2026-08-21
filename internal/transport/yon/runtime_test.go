@@ -209,9 +209,16 @@ func buildGoProgram(t *testing.T, ctx context.Context, name, packagePath string)
 	if err != nil {
 		t.Fatalf("open Go executable: %v", err)
 	}
+	environment := runtimeexec.AllowEnvironment("PATH", "HOME", "TMPDIR", "TMP", "TEMP", "SystemRoot", "GOTOOLCHAIN")
+	environment = append(
+		environment,
+		"CGO_ENABLED=0",
+		"GOARCH="+runtime.GOARCH,
+		"GOOS="+runtime.GOOS,
+	)
 	command := executable.Command(
 		ctx,
-		runtimeexec.AllowEnvironment("PATH", "HOME", "TMPDIR", "TMP", "TEMP", "SystemRoot", "GOTOOLCHAIN"),
+		environment,
 		"build", "-o", output, packagePath,
 	)
 	command.Dir = repositoryRoot(t)
@@ -275,7 +282,6 @@ func startQualifiedAgent(
 		"--fylo-version", qualifiedFyloVersion,
 		"--api-token-file", tokenFile,
 		"--session-file", sessionFile,
-		"--listen", "127.0.0.1:0",
 	)
 	command.Stdout = io.Discard
 	command.Stderr = io.Discard

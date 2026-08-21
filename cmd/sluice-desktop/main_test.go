@@ -6,6 +6,8 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"path/filepath"
+	"reflect"
 	"testing"
 
 	"github.com/d31ma/sluice/internal/platform/autostart"
@@ -73,6 +75,64 @@ func TestRunDesktopOptions(t *testing.T) {
 	}
 	if !got.background || !got.nativeSmoke {
 		t.Fatalf("desktop options = %+v, want background and native smoke", got)
+	}
+	if got.executable != "/installed/sluice-desktop" {
+		t.Fatalf("desktop executable = %q", got.executable)
+	}
+}
+
+func TestRunAcceptsAnIsolatedStateRootOnlyForNativeSmoke(t *testing.T) {
+	stateRoot := filepath.Join(t.TempDir(), "qualification-state")
+	var got desktopOptions
+	exitCode := run(
+		context.Background(),
+		[]string{"--native-smoke", "--qualification-state-root", stateRoot},
+		&bytes.Buffer{},
+		&bytes.Buffer{},
+		"/installed/sluice-desktop",
+		func(string) (autostart.Manager, error) { return nil, errors.New("unused") },
+		func(_ context.Context, options desktopOptions) error { got = options; return nil },
+	)
+	if exitCode != 0 || got.stateRoot != stateRoot {
+		t.Fatalf("run() = %d, options = %+v", exitCode, got)
+	}
+
+	var stderr bytes.Buffer
+	exitCode = run(
+		context.Background(),
+		[]string{"--qualification-state-root", stateRoot},
+		&bytes.Buffer{},
+		&stderr,
+		"/installed/sluice-desktop",
+		func(string) (autostart.Manager, error) { return nil, errors.New("unused") },
+		func(context.Context, desktopOptions) error { return errors.New("desktop must not run") },
+	)
+	if exitCode != 2 || stderr.Len() == 0 {
+		t.Fatalf("unbounded state override = exit %d, stderr %q", exitCode, stderr.String())
+	}
+}
+
+func TestRunDesktopWithLifecycleWrapsTheFyneShell(t *testing.T) {
+	events := make([]string, 0, 3)
+	session := &recordingRuntimeSession{events: &events}
+	err := runDesktopWithLifecycle(
+		context.Background(),
+		desktopOptions{executable: "/Applications/Sluice.app/Contents/MacOS/sluice-desktop"},
+		func(context.Context, desktopOptions) (runtimeSession, error) {
+			events = append(events, "runtime:start")
+			return session, nil
+		},
+		func() error {
+			events = append(events, "fyne:run")
+			return nil
+		},
+	)
+	if err != nil {
+		t.Fatalf("runDesktopWithLifecycle() error = %v", err)
+	}
+	want := []string{"runtime:start", "fyne:run", "runtime:close"}
+	if !reflect.DeepEqual(events, want) {
+		t.Fatalf("events = %v, want %v", events, want)
 	}
 }
 
@@ -158,6 +218,15 @@ type memoryManager struct {
 type recordingDesktopShell struct {
 	events    []string
 	showCalls int
+}
+
+type recordingRuntimeSession struct {
+	events *[]string
+}
+
+func (session *recordingRuntimeSession) Close(context.Context) error {
+	*session.events = append(*session.events, "runtime:close")
+	return nil
 }
 
 func (shell *recordingDesktopShell) Show() {

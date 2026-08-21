@@ -16,6 +16,7 @@ concurrency:
 jobs:
   test:
     name: Go ${{ matrix.os }}
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
@@ -25,11 +26,14 @@ jobs:
           - windows-latest
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-go@v6
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
         with:
           go-version-file: go.mod
           cache: true
+          cache-dependency-path: go.sum
       - name: Install Linux desktop build dependencies
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install --yes gcc libgl1-mesa-dev xorg-dev
@@ -43,12 +47,16 @@ jobs:
   quality:
     name: Quality gates
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-go@v6
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
         with:
           go-version-file: go.mod
           cache: true
+          cache-dependency-path: go.sum
       - name: Install Linux desktop build dependencies
         run: sudo apt-get update && sudo apt-get install --yes gcc libgl1-mesa-dev xorg-dev
       - name: Formatting

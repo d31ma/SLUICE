@@ -8,7 +8,6 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"net"
 	"net/http"
 	"net/url"
 	"strings"
@@ -86,16 +85,8 @@ func validateDescriptor(descriptor Descriptor) error {
 	if descriptor.ProtocolVersion != ProtocolVersion {
 		return ErrProtocolMismatch
 	}
-	if descriptor.Network != "tcp" {
-		return fmt.Errorf("%w: unsupported local network", ErrUnavailable)
-	}
-	host, port, err := net.SplitHostPort(descriptor.Address)
-	if err != nil || port == "" {
-		return fmt.Errorf("%w: invalid local address", ErrUnavailable)
-	}
-	address := net.ParseIP(host)
-	if address == nil || !address.IsLoopback() {
-		return fmt.Errorf("%w: agent address is not loopback", ErrUnavailable)
+	if err := validateTransportAddress(descriptor.Network, descriptor.Address); err != nil {
+		return err
 	}
 	decoded, err := base64.RawURLEncoding.DecodeString(descriptor.Capability)
 	if err != nil || len(decoded) != capabilityBytes {

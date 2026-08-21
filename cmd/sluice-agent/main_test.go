@@ -39,6 +39,13 @@ func TestParseOptionsBoundaries(t *testing.T) {
 	if config.listen != "[::1]:0" {
 		t.Fatalf("listen = %q, want [::1]:0", config.listen)
 	}
+	config, err = parseOptions(required)
+	if err != nil {
+		t.Fatalf("parseOptions() production defaults: %v", err)
+	}
+	if config.listen != "" {
+		t.Fatalf("default listen = %q, want native transport selection", config.listen)
+	}
 }
 
 func TestReadTokenBoundaries(t *testing.T) {

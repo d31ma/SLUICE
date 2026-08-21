@@ -109,7 +109,7 @@ func validatedRequestTarget(requestURL *url.URL) (string, error) {
 }
 
 func (client *Client) connect(ctx context.Context) (net.Conn, error) {
-	connection, err := (&net.Dialer{}).DialContext(ctx, client.descriptor.Network, client.descriptor.Address)
+	connection, err := dialTransport(ctx, client.descriptor.Network, client.descriptor.Address)
 	if err != nil {
 		return nil, fmt.Errorf("%w: connect to local agent", ErrUnavailable)
 	}
