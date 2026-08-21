@@ -5,12 +5,13 @@
 | Provider | Contract status | Capability evidence | Promotion status |
 | --- | --- | --- | --- |
 | MinIO | Pass on local isolated service | Conditional writes, ranges, multipart, versioning, native SHA-256 all true | Phase 1 compatibility evidence only |
+| RustFS 1.0.0-beta.9 | Pass on local isolated service | Conditional writes, ranges, multipart, versioning, native SHA-256 all true | Independent third-provider evidence complete |
+| Garage v2.3.0 | Fail on local isolated service | Conditional writes and versioning false | Incompatible with the Sluice remote protocol |
 | AWS S3 | Not run: no authorized bucket or credentials were available | None | Not qualified |
-| Independent third provider | Not run: provider and credentials were not supplied | None | Not qualified |
 
-The Phase 1 three-provider gate remains open until AWS S3 and one independent
-provider pass this same executable contract. No credentials were invented and
-no external buckets were provisioned.
+The independent third-provider portion now passes. The Phase 1 three-provider
+gate remains open only for an authorized AWS S3 run. No external credentials
+were invented and no external buckets were provisioned.
 
 ## MinIO run
 
@@ -41,6 +42,14 @@ ok   github.com/d31ma/sluice/internal/objectstore/s3 0.975s
 
 The provider version listing was empty after the run, and the named container
 was stopped and removed. No persistent Docker volume was attached.
+
+## Independent-provider runs
+
+RustFS passed all five capability probes and the complete contract against a
+pinned beta.9 image. Garage was also evaluated, but failed closed before the
+main contract because it lacks required conditional writes. See the dated
+[RustFS pass](2026-08-21-rustfs.md) and
+[Garage incompatibility](2026-08-21-garage.md) records.
 
 ## Deterministic adapter checks
 
@@ -73,8 +82,6 @@ go tool golangci-lint run ./internal/objectstore/s3/...
 - AWS requires an explicitly authorized, isolated bucket. The evidence run
   should enable versioning and use least-privilege credentials limited to the
   qualification prefix and required bucket metadata calls.
-- The independent provider has not been selected. It must not be another MinIO
-  deployment, because that would not test a separate implementation.
 - Native provider checksum absence is recorded by `ChecksumSHA256=false`; the
   adapter still stores a Sluice SHA-256 metadata value and verifies every full
   download. A profile must not claim native checksum support from that fallback.

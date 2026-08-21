@@ -3,13 +3,15 @@ ACTIVE_GO := $(shell $(GO) env GOROOT)/bin/go
 
 .DEFAULT_GOAL := help
 
-.PHONY: help bootstrap fmt fmt-check vet lint test test-race crap vuln licenses docs build check
+.PHONY: help bootstrap fmt fmt-check vet lint test test-race crap vuln licenses docs runtime-contract runtime-stage-macos build check
 
 help:
 	@echo "Sluice development commands"
 	@echo "  make bootstrap  download the pinned Go toolchain and modules"
 	@echo "  make fmt        format Go source"
-	@echo "  make check      run every Phase 0 quality gate"
+	@echo "  make check      run the complete local quality gate"
+	@echo "  make runtime-contract  validate pinned runtime bundle metadata"
+	@echo "  make runtime-stage-macos  stage and execute the macOS arm64 runtime payload"
 	@echo "  make build      build all Go packages"
 
 bootstrap:
@@ -46,7 +48,13 @@ licenses:
 docs:
 	./scripts/check-docs.sh
 
+runtime-contract:
+	./scripts/test-runtime-bundle-contract.sh
+
+runtime-stage-macos:
+	./scripts/test-runtime-bundle-macos.sh
+
 build:
 	$(GO) build ./...
 
-check: fmt-check vet lint test-race crap vuln licenses docs build
+check: fmt-check vet lint test-race crap vuln licenses docs runtime-contract build

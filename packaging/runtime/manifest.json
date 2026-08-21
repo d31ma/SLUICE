@@ -1,0 +1,161 @@
+{
+  "schemaVersion": 1,
+  "releaseVersion": "26.33.02",
+  "sources": {
+    "tachyon": {
+      "name": "Tachyon",
+      "repositoryUrl": "https://github.com/d31ma/Tachyon",
+      "releaseUrl": "https://github.com/d31ma/Tachyon/releases/tag/v26.33.02",
+      "sourceCommit": "f96c1589ee33b047044f220448268d32ad86e58f",
+      "license": "MIT",
+      "notices": [
+        {
+          "sourcePath": "third_party/tachyon/LICENSE",
+          "sourceUrl": "https://raw.githubusercontent.com/d31ma/Tachyon/f96c1589ee33b047044f220448268d32ad86e58f/LICENSE",
+          "sha256": "b6546356f302a5d99fe03fc636a3f20e772e8fcf3193e225415603d3b4805b8f"
+        },
+        {
+          "sourcePath": "third_party/tachyon/NOTICE",
+          "sourceUrl": "https://raw.githubusercontent.com/d31ma/Tachyon/f96c1589ee33b047044f220448268d32ad86e58f/NOTICE",
+          "sha256": "5cae44aa41c3539982deb87a6901be827cb2fc275e42977b08a2ec7001130ef5"
+        }
+      ]
+    },
+    "fylo": {
+      "name": "Fylo",
+      "repositoryUrl": "https://github.com/d31ma/FYLO",
+      "releaseUrl": "https://github.com/d31ma/FYLO/releases/tag/v26.33.02",
+      "sourceCommit": "e236162508f6789f980fa7ca136a6671938030cb",
+      "license": "MIT",
+      "notices": [
+        {
+          "sourcePath": "third_party/fylo/LICENSE",
+          "sourceUrl": "https://raw.githubusercontent.com/d31ma/FYLO/e236162508f6789f980fa7ca136a6671938030cb/LICENSE",
+          "sha256": "b6d06ca4541ffcafcf8ed84116890b268f36722cff41cc4afce350e1be75e952"
+        }
+      ]
+    }
+  },
+  "targets": [
+    {
+      "id": "macos-arm64",
+      "os": "darwin",
+      "arch": "arm64",
+      "qualification": "native-staging-passed",
+      "evidence": "docs/qualification/runtime/2026-08-21-macos-arm64-bundle.md",
+      "noticeDirectory": "Sluice.app/Contents/Resources/licenses",
+      "artifacts": [
+        {
+          "runtime": "tachyon",
+          "asset": "ty-macos-arm64",
+          "downloadUrl": "https://github.com/d31ma/Tachyon/releases/download/v26.33.02/ty-macos-arm64",
+          "sha256": "08b90a516ccb665664c3b986e71769cdcc738960e45a0bd8c73ab691a0cda1cd",
+          "installRelativePath": "Sluice.app/Contents/Resources/runtime/bin/ty"
+        },
+        {
+          "runtime": "fylo",
+          "asset": "fylo-macos-arm64",
+          "downloadUrl": "https://github.com/d31ma/FYLO/releases/download/v26.33.02/fylo-macos-arm64",
+          "sha256": "2c78f91130863ad797cf7a6062aa1245fa638857fee63b8671fa9e2748974fa3",
+          "installRelativePath": "Sluice.app/Contents/Resources/runtime/bin/fylo"
+        }
+      ]
+    },
+    {
+      "id": "macos-amd64",
+      "os": "darwin",
+      "arch": "amd64",
+      "qualification": "not-native-tested",
+      "evidence": null,
+      "noticeDirectory": "Sluice.app/Contents/Resources/licenses",
+      "artifacts": [
+        {
+          "runtime": "tachyon",
+          "asset": "ty-macos-x64",
+          "downloadUrl": "https://github.com/d31ma/Tachyon/releases/download/v26.33.02/ty-macos-x64",
+          "sha256": "b5fd0495a18a1923a132275d15358e170e66516e0f47b1f54f159031cec5d457",
+          "installRelativePath": "Sluice.app/Contents/Resources/runtime/bin/ty"
+        },
+        {
+          "runtime": "fylo",
+          "asset": "fylo-macos-x64",
+          "downloadUrl": "https://github.com/d31ma/FYLO/releases/download/v26.33.02/fylo-macos-x64",
+          "sha256": "551e72291a7085536f5de360807dbe93a149826f2c0e6bbd7fe56b2e34abc545",
+          "installRelativePath": "Sluice.app/Contents/Resources/runtime/bin/fylo"
+        }
+      ]
+    },
+    {
+      "id": "linux-arm64",
+      "os": "linux",
+      "arch": "arm64",
+      "qualification": "not-native-tested",
+      "evidence": null,
+      "noticeDirectory": "usr/share/doc/sluice/licenses",
+      "artifacts": [
+        {
+          "runtime": "tachyon",
+          "asset": "ty-linux-arm64",
+          "downloadUrl": "https://github.com/d31ma/Tachyon/releases/download/v26.33.02/ty-linux-arm64",
+          "sha256": "2e78dd4b46a300196e64d6563cbf53b77aa4fc407e51834568f7dccc6167e293",
+          "installRelativePath": "usr/lib/sluice/runtime/bin/ty"
+        },
+        {
+          "runtime": "fylo",
+          "asset": "fylo-linux-arm64",
+          "downloadUrl": "https://github.com/d31ma/FYLO/releases/download/v26.33.02/fylo-linux-arm64",
+          "sha256": "ec161767b411b6a81d59771f43a094d4da22796c3c71301f2cc2a8f0a4db9d17",
+          "installRelativePath": "usr/lib/sluice/runtime/bin/fylo"
+        }
+      ]
+    },
+    {
+      "id": "linux-amd64",
+      "os": "linux",
+      "arch": "amd64",
+      "qualification": "not-native-tested",
+      "evidence": null,
+      "noticeDirectory": "usr/share/doc/sluice/licenses",
+      "artifacts": [
+        {
+          "runtime": "tachyon",
+          "asset": "ty-linux-x64",
+          "downloadUrl": "https://github.com/d31ma/Tachyon/releases/download/v26.33.02/ty-linux-x64",
+          "sha256": "c662da31be584364b1d0554df232336a047b90ba66ab9bde9c87e248bb184616",
+          "installRelativePath": "usr/lib/sluice/runtime/bin/ty"
+        },
+        {
+          "runtime": "fylo",
+          "asset": "fylo-linux-x64",
+          "downloadUrl": "https://github.com/d31ma/FYLO/releases/download/v26.33.02/fylo-linux-x64",
+          "sha256": "8d60479cc189afb991d969917158d93d78897dcd0ca3aa7e062be186982644e8",
+          "installRelativePath": "usr/lib/sluice/runtime/bin/fylo"
+        }
+      ]
+    },
+    {
+      "id": "windows-amd64",
+      "os": "windows",
+      "arch": "amd64",
+      "qualification": "not-native-tested",
+      "evidence": null,
+      "noticeDirectory": "Sluice/licenses",
+      "artifacts": [
+        {
+          "runtime": "tachyon",
+          "asset": "ty-windows-x64.exe",
+          "downloadUrl": "https://github.com/d31ma/Tachyon/releases/download/v26.33.02/ty-windows-x64.exe",
+          "sha256": "00198a58534faff29f2373a2649c58f176e3305aa77242f59cee6530c7c371d5",
+          "installRelativePath": "Sluice/runtime/bin/ty.exe"
+        },
+        {
+          "runtime": "fylo",
+          "asset": "fylo-windows-x64.exe",
+          "downloadUrl": "https://github.com/d31ma/FYLO/releases/download/v26.33.02/fylo-windows-x64.exe",
+          "sha256": "d57a612d5abb770bc3e228a08b6a628341364b19fe8c62a6418bbb178ef41f34",
+          "installRelativePath": "Sluice/runtime/bin/fylo.exe"
+        }
+      ]
+    }
+  ]
+}

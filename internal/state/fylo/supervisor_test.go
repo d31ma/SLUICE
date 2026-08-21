@@ -15,7 +15,7 @@ import (
 const qualifiedFyloVersion = "26.33.02"
 
 func TestInstalledFyloHandshakeExclusiveOwnershipAndCleanRestart(t *testing.T) {
-	binary := installedRuntime(t, "fylo")
+	binary := installedFyloRuntime(t)
 	root := filepath.Join(t.TempDir(), "state")
 	requirements := fylostate.SluiceRequirements(qualifiedFyloVersion)
 
@@ -70,7 +70,7 @@ func TestInstalledFyloHandshakeExclusiveOwnershipAndCleanRestart(t *testing.T) {
 }
 
 func TestInstalledFyloMismatchFailsBeforeOpeningTheRoot(t *testing.T) {
-	binary := installedRuntime(t, "fylo")
+	binary := installedFyloRuntime(t)
 
 	tests := []struct {
 		name         string
@@ -121,18 +121,18 @@ func TestInstalledFyloMismatchFailsBeforeOpeningTheRoot(t *testing.T) {
 	}
 }
 
-func installedRuntime(t *testing.T, name string) string {
+func installedFyloRuntime(t *testing.T) string {
 	t.Helper()
-	path, err := exec.LookPath(name)
+	path, err := exec.LookPath("fylo")
 	if err != nil {
 		if os.Getenv("SLUICE_REQUIRE_INSTALLED_RUNTIMES") == "1" {
-			t.Fatalf("required installed runtime %q is unavailable: %v", name, err)
+			t.Fatalf("required installed runtime %q is unavailable: %v", "fylo", err)
 		}
-		t.Skipf("installed runtime %q is unavailable", name)
+		t.Skipf("installed runtime %q is unavailable", "fylo")
 	}
 	absolute, err := filepath.Abs(path)
 	if err != nil {
-		t.Fatalf("resolve %q: %v", name, err)
+		t.Fatalf("resolve %q: %v", "fylo", err)
 	}
 	return absolute
 }

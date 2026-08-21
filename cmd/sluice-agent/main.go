@@ -62,9 +62,13 @@ func newAgentService(config options, token string) (*agent.Service, error) {
 	if err != nil {
 		return nil, fmt.Errorf("configure state runtime: %w", err)
 	}
+	idempotency, err := fylo.NewIdempotencyStore(supervisor)
+	if err != nil {
+		return nil, fmt.Errorf("configure durable idempotency: %w", err)
+	}
 	return agent.NewService(agent.Config{
 		State:       fyloOwner{supervisor: supervisor},
-		Idempotency: agent.RejectingIdempotencyStore{},
+		Idempotency: idempotency,
 		APIToken:    token,
 		SessionFile: config.sessionFile,
 		Listen:      config.listen,

@@ -75,5 +75,7 @@ this container tag; do not infer production security approval from this test.
 A provider is supported only when a dated evidence file records the endpoint
 class, bucket settings, exact adapter and provider versions, capability output,
 all contract results, cleanup result, and any deviation. Cross-provider claims
-cannot be inferred from MinIO. AWS S3 and an independent third provider each
-need their own native run and evidence.
+cannot be inferred from MinIO. The independent RustFS run is recorded in
+`2026-08-21-rustfs.md`; the separate Garage attempt is recorded as incompatible
+in `2026-08-21-garage.md`. AWS S3 still needs its own authorized run and
+evidence.

@@ -21,6 +21,8 @@ installed. A skip is never qualification evidence.
 ## Reports
 
 - [macOS arm64, 2026-08-21](2026-08-21-macos-arm64.md)
+- [macOS arm64 runtime bundle staging, 2026-08-21](2026-08-21-macos-arm64-bundle.md)
+- [Runtime bundling contract](BUNDLING.md)
 
 ## Promotion rule
 

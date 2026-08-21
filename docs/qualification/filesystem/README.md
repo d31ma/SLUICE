@@ -46,21 +46,28 @@ segments never reach host path joining.
 `AtomicInstaller.Install` has deliberately narrow semantics:
 
 1. The destination parent must already exist.
-2. Every existing component from the canonical root to that parent is inspected
-   without following links.
-3. Unix symbolic links and Windows reparse points are rejected. A linked
-   destination is rejected as an unsafe link.
+2. Every existing component from the canonical root to that parent is opened or
+   inspected without following links.
+3. On macOS, the installer opens the root and each parent component with
+   `openat`, `O_DIRECTORY`, and `O_NOFOLLOW`, then keeps the resulting directory
+   handles through the commit. Unix symbolic links and Windows reparse points
+   are rejected. A linked destination is rejected as an unsafe link.
 4. Content is streamed into an exclusively created sibling temporary file, so
    the temporary file and destination are on the same filesystem.
 5. SHA-256 is calculated while writing and must match `ExpectedSHA256`.
-6. The requested permission bits are applied, and the temporary file is flushed
-   and closed before installation.
+6. The requested permission bits are applied and the temporary file is flushed
+   before installation. A platform may keep its handle open through commit.
 7. Cancellation is checked before mutation, while streaming, and immediately
-   before rename. Any pre-rename error removes the temporary file.
-8. A native atomic no-replace rename installs the file. Existing destinations
+   before rename. Any handled pre-rename error removes the temporary file.
+8. On macOS, a private extended-attribute marker, per-directory lock, and
+   per-temporary-file lock distinguish Sluice-owned live installs from files
+   orphaned by process termination. The next install in the directory removes
+   only marked, unlocked orphan temporary files before writing. A user file that
+   merely resembles the reserved temporary filename is left untouched.
+9. A native atomic no-replace rename installs the file. Existing destinations
    are never overwritten, including under competing installers.
-9. On POSIX, the destination directory is flushed after rename. On Windows,
-   `MoveFileEx` uses `MOVEFILE_WRITE_THROUGH`.
+10. On POSIX, the destination directory is flushed after rename. On Windows,
+    `MoveFileEx` uses `MOVEFILE_WRITE_THROUGH`.
 
 No-replace is intentional. Replacing a cataloged file requires a future
 compare-and-swap contract that proves the expected prior revision; it must not
@@ -72,13 +79,18 @@ ledger must reconcile destination content before deciding whether to retry.
 
 ## Link-safety boundary
 
-The current implementation rejects stable symlink and reparse-point fixtures
-and rechecks the parent immediately before rename. Its path-based checks do not
-eliminate a hostile process changing a directory component between inspection
-and the native rename. Native qualification must therefore include a concurrent
-component-swap test. If that test can escape the root, the platform adapter must
-move installation to directory-handle-relative operations before support can be
-promoted. This is a Phase 1 safety gate, not an accepted production exception.
+The macOS implementation is directory-handle-relative. Immediately before its
+`renameatx_np` commit, it reopens the configured root and logical parent through
+no-follow handles and compares device and inode identities with the handles that
+own the temporary file. A deterministic hostile-swap test renames the opened
+parent and replaces its logical path with a symlink while installation is in
+progress. The call fails closed, removes the temporary file through the original
+directory handle, and writes no bytes through the replacement link.
+
+The Linux and Windows implementations still use path-based component checks.
+Their native concurrent-swap gates remain failed until equivalent handle-based
+adapters and native evidence exist. Cross-compilation does not qualify those
+implementations.
 
 ## Stable failures
 

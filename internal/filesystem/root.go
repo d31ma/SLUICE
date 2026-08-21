@@ -48,3 +48,21 @@ func errorsJoin(primary, cause error) error {
 	}
 	return errors.Join(primary, cause)
 }
+
+func requireRealDirectory(path string) error {
+	info, err := os.Lstat(path)
+	if err != nil {
+		return failure(CodeUnsafeParent, errorsJoin(ErrUnsafeParent, err))
+	}
+	unsafe, err := isUnsafeLink(path, info)
+	if err != nil {
+		return failure(CodeIO, err)
+	}
+	if unsafe {
+		return failure(CodeUnsafeLink, ErrUnsafeLink)
+	}
+	if !info.IsDir() {
+		return failure(CodeUnsafeParent, ErrUnsafeParent)
+	}
+	return nil
+}
