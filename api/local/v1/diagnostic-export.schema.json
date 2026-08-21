@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["bundleId", "path", "redacted", "diagnosticBundleVersion", "createdAt"],
+  "properties": {
+    "bundleId": {"$ref": "common.schema.json#/$defs/id"},
+    "path": {"type": "string", "minLength": 3, "maxLength": 4096},
+    "redacted": {"const": true},
+    "diagnosticBundleVersion": {"const": 1},
+    "createdAt": {"$ref": "common.schema.json#/$defs/timestamp"}
+  },
+  "additionalProperties": false
+}

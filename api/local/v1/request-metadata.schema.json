@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["method", "path", "authorization"],
+  "properties": {
+    "method": {"enum": ["GET", "POST"]},
+    "path": {"type": "string", "pattern": "^/v1/(?:health|version|status|profiles(?:/[a-z0-9_-]+/probe)?|roots(?:/[a-z0-9_-]+/(?:pause|resume|reconcile))?|operations|conflicts(?:/[a-z0-9_-]+/resolve)?|diagnostics/export)$"},
+    "authorization": {"type": "string", "pattern": "^Bearer [A-Za-z0-9_-]{43,128}$"},
+    "idempotencyKey": {"type": "string", "minLength": 16, "maxLength": 128, "pattern": "^[A-Za-z0-9._~-]+$"}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"method": {"const": "POST"}}, "required": ["method"]},
+      "then": {"required": ["idempotencyKey"]},
+      "else": {"not": {"required": ["idempotencyKey"]}}
+    }
+  ],
+  "additionalProperties": false
+}

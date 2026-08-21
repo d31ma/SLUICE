@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["roots", "page"],
+  "properties": {
+    "roots": {
+      "type": "array",
+      "maxItems": 1000,
+      "items": {
+        "type": "object",
+        "required": ["rootId", "profileId", "canonicalPath", "mode", "state", "scanGeneration"],
+        "properties": {
+          "rootId": {"$ref": "common.schema.json#/$defs/id"},
+          "profileId": {"$ref": "common.schema.json#/$defs/id"},
+          "canonicalPath": {"type": "string", "minLength": 3, "maxLength": 4096},
+          "mode": {"enum": ["two-way", "upload-only", "download-only"]},
+          "state": {"enum": ["starting", "ready", "scanning", "syncing", "paused", "degraded", "stopped"]},
+          "scanGeneration": {"type": "integer", "minimum": 0}
+        },
+        "additionalProperties": false
+      }
+    },
+    "page": {"$ref": "common.schema.json#/$defs/page"}
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "logicalPath": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4096,
+      "pattern": "^[^/\\\\:*?\"<>|]+(?:/[^/\\\\:*?\"<>|]+)*$"
+    },
+    "page": {
+      "type": "object",
+      "required": ["limit", "hasMore", "nextCursor"],
+      "properties": {
+        "limit": {"type": "integer", "minimum": 1, "maximum": 1000},
+        "hasMore": {"type": "boolean"},
+        "nextCursor": {"type": ["string", "null"], "maxLength": 4096}
+      },
+      "additionalProperties": false
+    },
+    "revision": {
+      "type": "object",
+      "required": ["revisionId", "deviceId", "sequence", "contentHash", "size", "observedAt"],
+      "properties": {
+        "revisionId": {"$ref": "#/$defs/id"},
+        "deviceId": {"$ref": "#/$defs/id"},
+        "sequence": {"type": "integer", "minimum": 1},
+        "contentHash": {"oneOf": [{"$ref": "#/$defs/sha256"}, {"type": "null"}]},
+        "size": {"type": "integer", "minimum": 0},
+        "observedAt": {"$ref": "#/$defs/timestamp"}
+      },
+      "additionalProperties": false
+    }
+  }
+}

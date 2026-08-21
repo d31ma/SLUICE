@@ -1,0 +1,37 @@
+version: "2"
+
+run:
+  timeout: 5m
+  tests: true
+
+linters:
+  default: standard
+  enable:
+    - asciicheck
+    - bodyclose
+    - errorlint
+    - exhaustive
+    - gocritic
+    - gosec
+    - misspell
+    - nilerr
+    - nolintlint
+    - revive
+    - testifylint
+    - unconvert
+    - unparam
+  settings:
+    cyclop:
+      max-complexity: 15
+    govet:
+      enable-all: true
+    revive:
+      confidence: 0.8
+
+formatters:
+  enable:
+    - gofumpt
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0

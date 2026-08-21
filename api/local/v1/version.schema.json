@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["applicationVersion", "commit", "builtAt", "localApiVersion", "agentProtocolVersion", "fyloSchemaVersion", "remoteProtocolVersion", "diagnosticBundleVersion"],
+  "properties": {
+    "applicationVersion": {"type": "string", "minLength": 1, "maxLength": 64},
+    "commit": {"type": "string", "minLength": 1, "maxLength": 64},
+    "builtAt": {"type": "string", "minLength": 1, "maxLength": 64},
+    "localApiVersion": {"const": 1},
+    "agentProtocolVersion": {"const": 1},
+    "fyloSchemaVersion": {"const": 1},
+    "remoteProtocolVersion": {"const": 1},
+    "diagnosticBundleVersion": {"const": 1}
+  },
+  "additionalProperties": false
+}

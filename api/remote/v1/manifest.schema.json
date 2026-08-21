@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["protocol", "formatVersion", "rootId", "logicalPath", "logicalPathHash", "content", "executable", "revision"],
+  "properties": {
+    "protocol": {"const": "sluice.remote"},
+    "formatVersion": {"const": 1},
+    "rootId": {"$ref": "common.schema.json#/$defs/id"},
+    "logicalPath": {"$ref": "common.schema.json#/$defs/logicalPath"},
+    "logicalPathHash": {"$ref": "common.schema.json#/$defs/sha256"},
+    "content": {
+      "type": "object",
+      "required": ["algorithm", "digest", "size", "mediaType"],
+      "properties": {
+        "algorithm": {"const": "sha256"},
+        "digest": {"$ref": "common.schema.json#/$defs/sha256"},
+        "size": {"type": "integer", "minimum": 0},
+        "mediaType": {"type": "string", "minLength": 1, "maxLength": 255, "pattern": "^[A-Za-z0-9!#$&^_.+-]+/[A-Za-z0-9!#$&^_.+-]+$"}
+      },
+      "additionalProperties": false
+    },
+    "executable": {"type": "boolean"},
+    "revision": {"$ref": "common.schema.json#/$defs/revision"}
+  },
+  "additionalProperties": false
+}

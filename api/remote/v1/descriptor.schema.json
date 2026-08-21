@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["protocol", "formatVersion", "rootId", "createdByDeviceId", "createdAt", "logicalPathCanonicalization", "contentHashAlgorithm"],
+  "properties": {
+    "protocol": {"const": "sluice.remote"},
+    "formatVersion": {"const": 1},
+    "rootId": {"$ref": "common.schema.json#/$defs/id"},
+    "createdByDeviceId": {"$ref": "common.schema.json#/$defs/id"},
+    "createdAt": {"$ref": "common.schema.json#/$defs/timestamp"},
+    "logicalPathCanonicalization": {"const": "sluice-portable-nfc-v1"},
+    "contentHashAlgorithm": {"const": "sha256"}
+  },
+  "additionalProperties": false
+}

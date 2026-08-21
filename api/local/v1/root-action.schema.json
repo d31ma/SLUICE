@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["rootId", "operationId", "action", "acceptedAt"],
+  "properties": {
+    "rootId": {"$ref": "common.schema.json#/$defs/id"},
+    "operationId": {"$ref": "common.schema.json#/$defs/id"},
+    "action": {"enum": ["pause", "resume", "reconcile"]},
+    "acceptedAt": {"$ref": "common.schema.json#/$defs/timestamp"}
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,1 @@
+{"profileId":"profile-01","qualified":true,"provider":"AWS S3","capabilities":{"conditionalPut":true,"multipartUpload":true,"rangeDownload":true,"versionIds":true,"checksumSha256":true},"probedAt":"2026-08-21T14:30:00Z"}

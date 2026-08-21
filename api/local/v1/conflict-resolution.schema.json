@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["resolution"],
+  "properties": {
+    "resolution": {"enum": ["keep-local", "keep-remote", "keep-both", "manual"]},
+    "manualPath": {"$ref": "common.schema.json#/$defs/logicalPath"}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"resolution": {"const": "manual"}}, "required": ["resolution"]},
+      "then": {"required": ["manualPath"]},
+      "else": {"not": {"required": ["manualPath"]}}
+    }
+  ],
+  "additionalProperties": false
+}

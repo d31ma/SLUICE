@@ -1,0 +1,1 @@
+{"profiles":[{"profileId":"profile-01","name":"Primary storage","endpoint":"https://s3.example.test","region":"ca-central-1","bucket":"sluice-data","prefix":"team/archive","secretRef":"native-secret://sluice/profile-01","enabled":true,"qualificationState":"qualified"}],"page":{"limit":100,"hasMore":false,"nextCursor":null}}

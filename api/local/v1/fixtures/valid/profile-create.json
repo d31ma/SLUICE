@@ -1,0 +1,1 @@
+{"name":"Primary storage","endpoint":"https://s3.example.test","region":"ca-central-1","bucket":"sluice-data","prefix":"team/archive","secretRef":"native-secret://sluice/profile-01","allowInsecureTls":false}

@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["conflicts", "page"],
+  "properties": {
+    "conflicts": {
+      "type": "array",
+      "maxItems": 1000,
+      "items": {
+        "type": "object",
+        "required": ["conflictId", "rootId", "entryId", "logicalPath", "localRevision", "remoteRevision", "state", "detectedAt"],
+        "properties": {
+          "conflictId": {"$ref": "common.schema.json#/$defs/id"},
+          "rootId": {"$ref": "common.schema.json#/$defs/id"},
+          "entryId": {"$ref": "common.schema.json#/$defs/id"},
+          "logicalPath": {"$ref": "common.schema.json#/$defs/logicalPath"},
+          "localRevision": {"$ref": "common.schema.json#/$defs/revision"},
+          "remoteRevision": {"$ref": "common.schema.json#/$defs/revision"},
+          "state": {"enum": ["unresolved", "resolving", "resolved"]},
+          "detectedAt": {"$ref": "common.schema.json#/$defs/timestamp"}
+        },
+        "additionalProperties": false
+      }
+    },
+    "page": {"$ref": "common.schema.json#/$defs/page"}
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,1 @@
+{"type":"https://sluice.del.ma/problems/internal_error","code":"internal_error","title":"Internal error","status":500,"retryable":false,"detail":"Authorization: Bearer secret\nmust never be exposed","requestId":"request-01"}

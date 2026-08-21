@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "logicalPath": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4096,
+      "pattern": "^[^/\\\\:*?\"<>|]+(?:/[^/\\\\:*?\"<>|]+)*$"
+    },
+    "revision": {
+      "type": "object",
+      "required": ["revisionId", "parentRevisionIds", "deviceId", "deviceSequence", "createdAt"],
+      "properties": {
+        "revisionId": {"$ref": "#/$defs/id"},
+        "parentRevisionIds": {
+          "type": "array",
+          "maxItems": 2,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/id"}
+        },
+        "deviceId": {"$ref": "#/$defs/id"},
+        "deviceSequence": {"type": "integer", "minimum": 1},
+        "createdAt": {"$ref": "#/$defs/timestamp"}
+      },
+      "additionalProperties": false
+    }
+  }
+}

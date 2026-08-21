@@ -1,0 +1,1 @@
+{"operations":[{"operationId":"operation-01","rootId":"root-01","entryId":"entry-01","type":"upload","state":"failed_retryable","attempt":2,"retryable":true,"errorCode":"provider_unavailable","createdAt":"2026-08-21T14:00:00Z","updatedAt":"2026-08-21T14:30:00Z"}],"page":{"limit":100,"hasMore":true,"nextCursor":"cursor-02"}}

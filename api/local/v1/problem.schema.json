@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["type", "code", "title", "status", "retryable", "detail", "requestId"],
+  "properties": {
+    "type": {"type": "string", "format": "uri", "pattern": "^https://sluice\\.del\\.ma/problems/"},
+    "code": {"type": "string", "pattern": "^[a-z][a-z0-9_]{2,63}$"},
+    "title": {"type": "string", "minLength": 1, "maxLength": 120},
+    "status": {"type": "integer", "minimum": 400, "maximum": 599},
+    "retryable": {"type": "boolean"},
+    "detail": {"type": "string", "maxLength": 1024, "pattern": "^[^\\r\\n]*$"},
+    "requestId": {"$ref": "common.schema.json#/$defs/id"}
+  },
+  "additionalProperties": false
+}

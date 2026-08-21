@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["operations", "page"],
+  "properties": {
+    "operations": {
+      "type": "array",
+      "maxItems": 1000,
+      "items": {
+        "type": "object",
+        "required": ["operationId", "rootId", "type", "state", "attempt", "retryable", "createdAt", "updatedAt"],
+        "properties": {
+          "operationId": {"$ref": "common.schema.json#/$defs/id"},
+          "rootId": {"$ref": "common.schema.json#/$defs/id"},
+          "entryId": {"oneOf": [{"$ref": "common.schema.json#/$defs/id"}, {"type": "null"}]},
+          "type": {"enum": ["scan", "reconcile", "upload", "download", "delete", "materialize", "evict", "pause", "resume", "diagnostic-export"]},
+          "state": {"enum": ["queued", "claimed", "running", "verifying", "succeeded", "failed_retryable", "failed_terminal", "cancelled"]},
+          "attempt": {"type": "integer", "minimum": 0},
+          "retryable": {"type": "boolean"},
+          "errorCode": {"type": ["string", "null"], "pattern": "^[a-z][a-z0-9_]{2,63}$"},
+          "createdAt": {"$ref": "common.schema.json#/$defs/timestamp"},
+          "updatedAt": {"$ref": "common.schema.json#/$defs/timestamp"}
+        },
+        "additionalProperties": false
+      }
+    },
+    "page": {"$ref": "common.schema.json#/$defs/page"}
+  },
+  "additionalProperties": false
+}

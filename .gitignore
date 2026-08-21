@@ -1,0 +1,39 @@
+# Go
+/bin/
+/dist/
+/coverage/
+*.coverprofile
+*.test
+
+# Native build outputs
+*.app
+*.dmg
+*.msi
+*.pkg
+*.rpm
+*.deb
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+*.p12
+*.pfx
+
+# Editors and operating systems
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# Runtime state
+.sluice/
+sluice-state/
+diagnostics-*.zip
+
+# Generated local tooling
+tools/bin/
+graphify-out/

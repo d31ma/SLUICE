@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["name", "endpoint", "region", "bucket", "prefix", "secretRef", "allowInsecureTls"],
+  "properties": {
+    "name": {"type": "string", "minLength": 1, "maxLength": 128},
+    "endpoint": {"type": "string", "format": "uri", "maxLength": 2048},
+    "region": {"type": "string", "minLength": 1, "maxLength": 128},
+    "bucket": {"type": "string", "minLength": 3, "maxLength": 255},
+    "prefix": {"type": "string", "maxLength": 768, "pattern": "^(?:[^/\\\\]+(?:/[^/\\\\]+)*)?$"},
+    "secretRef": {"type": "string", "minLength": 1, "maxLength": 512},
+    "allowInsecureTls": {"type": "boolean"}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"endpoint": {"pattern": "^http://"}}, "required": ["endpoint"]},
+      "then": {"properties": {"allowInsecureTls": {"const": true}}}
+    }
+  ],
+  "additionalProperties": false
+}

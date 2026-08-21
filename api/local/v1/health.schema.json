@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["status", "agentConnected", "fyloReady", "checkedAt"],
+  "properties": {
+    "status": {"enum": ["ok", "degraded"]},
+    "agentConnected": {"type": "boolean"},
+    "fyloReady": {"type": "boolean"},
+    "checkedAt": {"$ref": "common.schema.json#/$defs/timestamp"}
+  },
+  "additionalProperties": false
+}

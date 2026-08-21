@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["state", "roots", "queueDepth", "activeTransfers", "unresolvedConflicts", "observedAt"],
+  "properties": {
+    "state": {"enum": ["starting", "ready", "paused", "degraded", "stopping"]},
+    "roots": {"type": "integer", "minimum": 0},
+    "queueDepth": {"type": "integer", "minimum": 0},
+    "activeTransfers": {"type": "integer", "minimum": 0, "maximum": 64},
+    "unresolvedConflicts": {"type": "integer", "minimum": 0},
+    "observedAt": {"$ref": "common.schema.json#/$defs/timestamp"}
+  },
+  "additionalProperties": false
+}

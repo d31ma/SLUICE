@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["profileId", "qualified", "provider", "capabilities", "probedAt"],
+  "properties": {
+    "profileId": {"$ref": "common.schema.json#/$defs/id"},
+    "qualified": {"type": "boolean"},
+    "provider": {"type": "string", "minLength": 1, "maxLength": 128},
+    "capabilities": {
+      "type": "object",
+      "required": ["conditionalPut", "multipartUpload", "rangeDownload", "versionIds", "checksumSha256"],
+      "properties": {
+        "conditionalPut": {"type": "boolean"},
+        "multipartUpload": {"type": "boolean"},
+        "rangeDownload": {"type": "boolean"},
+        "versionIds": {"type": "boolean"},
+        "checksumSha256": {"type": "boolean"}
+      },
+      "additionalProperties": false
+    },
+    "probedAt": {"$ref": "common.schema.json#/$defs/timestamp"}
+  },
+  "additionalProperties": false
+}
