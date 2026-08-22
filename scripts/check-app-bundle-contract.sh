@@ -6,12 +6,19 @@ plist="$repo_root/packaging/macos/Info.plist"
 route="$repo_root/packaging/tachyon/server/routes/v1/health/yon.sluice"
 desktop_entry="$repo_root/packaging/linux/sluice.desktop"
 windows_manifest="$repo_root/packaging/windows/app-manifest.json"
+macos_stage="$repo_root/scripts/stage-app-bundle-macos.sh"
+linux_stage="$repo_root/scripts/stage-app-bundle-linux.sh"
+windows_stage="$repo_root/scripts/stage-app-bundle-windows.ps1"
 
 test -f "$plist"
 test -f "$desktop_entry"
 test -f "$windows_manifest"
 test -f "$route"
 test -s "$route"
+
+grep -q -- 'go build -trimpath -tags accessibility' "$macos_stage"
+grep -q -- 'go build -trimpath -tags accessibility' "$linux_stage"
+grep -q -- '-Accessibility -WindowsGui' "$windows_stage"
 
 ruby -rrexml/document -e '
   document = REXML::Document.new(File.read(ARGV.fetch(0)))
@@ -36,7 +43,7 @@ ruby -rrexml/document -e '
     element = entries[key] or abort "app bundle contract: missing #{key}"
     abort "app bundle contract: #{key} must be true" unless element.name == "true"
   end
-  puts "app bundle contract: Info.plist and Tachyon health route passed"
+  puts "app bundle contract: Info.plist, accessibility build profile, and Tachyon health route passed"
 ' "$plist"
 
 ruby -e '

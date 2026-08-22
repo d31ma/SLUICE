@@ -85,6 +85,7 @@ function Invoke-GoBuild {
         [Parameter(Mandatory = $true)][string]$Output,
         [Parameter(Mandatory = $true)][string]$Package,
         [Parameter(Mandatory = $true)][bool]$CgoEnabled,
+        [switch]$Accessibility,
         [switch]$WindowsGui
     )
 
@@ -96,6 +97,9 @@ function Invoke-GoBuild {
         $env:GOARCH = 'amd64'
         $env:CGO_ENABLED = if ($CgoEnabled) { '1' } else { '0' }
         $arguments = @('build', '-trimpath')
+        if ($Accessibility) {
+            $arguments += @('-tags', 'accessibility')
+        }
         if ($WindowsGui) {
             $arguments += @('-ldflags', '-H=windowsgui')
         }
@@ -163,7 +167,8 @@ New-Item -ItemType Directory -Force -Path $libexec, $routeDirectory, $sluiceLice
 
 Push-Location $repositoryRoot
 try {
-    Invoke-GoBuild -Output (Join-Path $appRoot 'sluice-desktop.exe') -Package './cmd/sluice-desktop' -CgoEnabled $true -WindowsGui
+    # Fyne 2.8 keeps its native accessibility bridge behind this opt-in tag.
+    Invoke-GoBuild -Output (Join-Path $appRoot 'sluice-desktop.exe') -Package './cmd/sluice-desktop' -CgoEnabled $true -Accessibility -WindowsGui
     Invoke-GoBuild -Output (Join-Path $libexec 'sluice-agent.exe') -Package './cmd/sluice-agent' -CgoEnabled $false
     Invoke-GoBuild -Output (Join-Path $libexec 'sluice-yon.exe') -Package './internal/transport/yon/cmd/sluice-yon' -CgoEnabled $false
 } finally {

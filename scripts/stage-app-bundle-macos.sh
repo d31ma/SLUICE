@@ -48,8 +48,10 @@ contents="$app_root/Contents"
 mkdir -p "$contents/MacOS" "$contents/Helpers"
 
 cd "$repo_root"
+# Fyne 2.8 keeps its native accessibility bridge behind this opt-in tag.
 GOOS=darwin GOARCH="$goarch" CGO_ENABLED=1 \
-  go build -trimpath -o "$contents/MacOS/sluice-desktop" ./cmd/sluice-desktop
+  go build -trimpath -tags accessibility \
+    -o "$contents/MacOS/sluice-desktop" ./cmd/sluice-desktop
 GOOS=darwin GOARCH="$goarch" CGO_ENABLED=0 \
   go build -trimpath -o "$contents/Helpers/sluice-agent" ./cmd/sluice-agent
 GOOS=darwin GOARCH="$goarch" CGO_ENABLED=0 \

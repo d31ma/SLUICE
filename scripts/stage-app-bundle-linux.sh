@@ -50,8 +50,10 @@ mkdir -p \
   "$app_root/usr/share/doc/sluice/licenses/Sluice"
 
 cd "$repository_root"
+# Keep one desktop build profile even where the current Fyne driver is a stub.
 GOOS=linux GOARCH="$goarch" CGO_ENABLED=1 \
-  go build -trimpath -o "$app_root/AppRun" ./cmd/sluice-desktop
+  go build -trimpath -tags accessibility \
+    -o "$app_root/AppRun" ./cmd/sluice-desktop
 GOOS=linux GOARCH="$goarch" CGO_ENABLED=0 \
   go build -trimpath -o "$app_root/usr/libexec/sluice/sluice-agent" ./cmd/sluice-agent
 GOOS=linux GOARCH="$goarch" CGO_ENABLED=0 \
