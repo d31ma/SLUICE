@@ -3,14 +3,17 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"flag"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
 
@@ -191,8 +194,7 @@ func runDesktop(ctx context.Context, options desktopOptions) error {
 		})
 	}
 	return runDesktopWithLifecycle(ctx, options, startPackagedRuntime, func() error {
-		runFyneDesktop(ctx, options)
-		return nil
+		return runFyneDesktop(ctx, options)
 	})
 }
 
@@ -267,7 +269,14 @@ func openPackagedCoordinator(options desktopOptions) (*lifecycle.Coordinator, bo
 	return coordinator, true, nil
 }
 
-func runFyneDesktop(ctx context.Context, options desktopOptions) {
+func runFyneDesktop(ctx context.Context, options desktopOptions) error {
+	var smokeLog bytes.Buffer
+	if options.nativeSmoke {
+		previousLogWriter := log.Writer()
+		log.SetOutput(io.MultiWriter(previousLogWriter, &smokeLog))
+		defer log.SetOutput(previousLogWriter)
+	}
+
 	fyneapp.SetMetadata(fyne.AppMetadata{
 		ID:         applicationID(),
 		Name:       "Sluice",
@@ -279,6 +288,14 @@ func runFyneDesktop(ctx context.Context, options desktopOptions) {
 	shell := appui.NewDesktopShell(application)
 	showDesktopShell(shell, options)
 	runDesktopShell(ctx, shell, options.nativeSmoke)
+	return nativeSmokeLogFailure(smokeLog.String())
+}
+
+func nativeSmokeLogFailure(output string) error {
+	if strings.Contains(output, "window creation error") {
+		return fmt.Errorf("native window initialization failed")
+	}
+	return nil
 }
 
 func showDesktopShell(shell desktopShell, options desktopOptions) {

@@ -269,6 +269,18 @@ func TestExerciseNativeShellRunsCompleteLifecycle(t *testing.T) {
 	}
 }
 
+func TestNativeSmokeLogFailureRejectsWindowInitializationErrors(t *testing.T) {
+	if err := nativeSmokeLogFailure("Fyne error:  window creation error\n  Cause: APIUnavailable: WGL"); err == nil {
+		t.Fatal("native smoke accepted a logged window creation failure")
+	}
+	if err := nativeSmokeLogFailure("Fyne error:  Failed to send notification\n"); err != nil {
+		t.Fatalf("notification permission outcome rejected native window lifecycle: %v", err)
+	}
+	if err := nativeSmokeLogFailure(""); err != nil {
+		t.Fatalf("clean native smoke log rejected: %v", err)
+	}
+}
+
 type memoryManager struct {
 	state autostart.State
 }
