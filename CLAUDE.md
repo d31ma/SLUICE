@@ -1,6 +1,6 @@
 # CLAUDE.md - Sluice
 
-@/Users/iyor/Library/CloudStorage/Dropbox/INSTRUCTIONS.md
+@../../../INSTRUCTIONS.md
 @AGENTS.md
 
 Claude must read and follow the imported Dropbox-wide instructions and the

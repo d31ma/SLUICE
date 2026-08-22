@@ -36,7 +36,10 @@ jobs:
           cache-dependency-path: go.sum
       - name: Install Linux desktop build dependencies
         if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install --yes gcc libgl1-mesa-dev xorg-dev
+        run: >-
+          sudo apt-get update && sudo apt-get install --yes gcc
+          libdecor-0-dev libegl1-mesa-dev libgl1-mesa-dev libwayland-dev
+          libxkbcommon-dev libxkbcommon-x11-dev wayland-protocols xorg-dev
       - name: Test with the race detector
         run: go test -race ./...
       - name: Vet
@@ -58,7 +61,10 @@ jobs:
           cache: true
           cache-dependency-path: go.sum
       - name: Install Linux desktop build dependencies
-        run: sudo apt-get update && sudo apt-get install --yes gcc libgl1-mesa-dev xorg-dev
+        run: >-
+          sudo apt-get update && sudo apt-get install --yes gcc
+          libdecor-0-dev libegl1-mesa-dev libgl1-mesa-dev libwayland-dev
+          libxkbcommon-dev libxkbcommon-x11-dev wayland-protocols xorg-dev
       - name: Formatting
         run: make fmt-check
       - name: Lint

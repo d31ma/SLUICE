@@ -2,9 +2,8 @@
 
 ## Inheritance
 
-This repository inherits all shared workspace instructions from:
-
-`/Users/iyor/Library/CloudStorage/Dropbox/INSTRUCTIONS.md`
+This repository inherits all shared workspace instructions from the Dropbox
+root at `../../../INSTRUCTIONS.md`.
 
 Read and follow that file before starting any task in this repository. Its
 workflow, engineering standards, validation phases, Graphify requirements, and
@@ -25,10 +24,11 @@ stay within the active phase and satisfy that phase's acceptance gate.
 
 ## Current status
 
-Sluice is in Phase 1 feasibility and executable-contract work. The repository
-foundation and initial contract packages exist, but no target, integration, or
-release tier is supported until the native evidence required by the project
-plan is recorded.
+Sluice is in Phase 1 feasibility and executable-contract work. Native macOS
+arm64 and Linux arm64 evidence exists, but the Phase 1 gate remains open for
+the targets and interactive/provider checks named in
+`docs/qualification/README.md`. No target, integration, or release tier is
+supported until that gate is green.
 
 ## Non-negotiable architecture
 
