@@ -3,7 +3,7 @@ ACTIVE_GO := $(shell $(GO) env GOROOT)/bin/go
 
 .DEFAULT_GOAL := help
 
-.PHONY: help bootstrap runtime-tools fmt fmt-check vet lint test test-race crap vuln licenses docs workflows runtime-contract app-bundle-contract runtime-stage-macos app-package-macos app-package-linux app-package-windows app-runtime-qualify-macos filesystem-qualify-macos linux-qualify-arm64 build check
+.PHONY: help bootstrap runtime-tools fmt fmt-check vet lint test test-race crap vuln licenses docs workflows runtime-contract app-bundle-contract runtime-stage-macos app-package-macos app-package-linux app-package-windows app-runtime-qualify-macos filesystem-qualify-macos filesystem-qualify-linux-amd64 filesystem-qualify-windows linux-qualify-arm64 build check
 
 help:
 	@echo "Sluice development commands"
@@ -18,6 +18,8 @@ help:
 	@echo "  make app-package-windows  stage and exercise a native Windows amd64 portable package"
 	@echo "  make app-runtime-qualify-macos  record a ten-minute native packaged-process baseline"
 	@echo "  make filesystem-qualify-macos  run native arm64 APFS destructive fixtures in an isolated image"
+	@echo "  make filesystem-qualify-linux-amd64  run native amd64 ext4/tmpfs destructive fixtures"
+	@echo "  make filesystem-qualify-windows  run native amd64 NTFS destructive fixtures in an isolated VHD"
 	@echo "  make linux-qualify-arm64  run native Linux arm64 runtime, IPC, filesystem, and AppDir qualification"
 	@echo "  make build      build all Go packages"
 
@@ -84,6 +86,12 @@ app-runtime-qualify-macos:
 
 filesystem-qualify-macos:
 	./scripts/test-filesystem-macos.sh
+
+filesystem-qualify-linux-amd64:
+	./scripts/test-filesystem-linux-amd64.sh
+
+filesystem-qualify-windows:
+	pwsh -NoLogo -NoProfile -File ./scripts/test-filesystem-windows.ps1
 
 linux-qualify-arm64:
 	./scripts/qualify-linux-arm64-container.sh

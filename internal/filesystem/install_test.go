@@ -17,6 +17,8 @@ import (
 	"github.com/d31ma/sluice/internal/filesystem"
 )
 
+const requireNativeLinks = "SLUICE_FS_REQUIRE_NATIVE_LINKS"
+
 func TestAtomicInstallerInstallsVerifiedBytes(t *testing.T) {
 	t.Parallel()
 
@@ -247,6 +249,9 @@ func TestAtomicInstallerRejectsLinkComponentsAndDestinations(t *testing.T) {
 	outside := t.TempDir()
 	linkParent := filepath.Join(rootPath, "linked")
 	if err := os.Symlink(outside, linkParent); err != nil {
+		if os.Getenv(requireNativeLinks) != "" {
+			t.Fatalf("required native symlink fixture unavailable: %v", err)
+		}
 		t.Skipf("symlink unavailable: %v", err)
 	}
 	installer := newInstaller(t, rootPath)

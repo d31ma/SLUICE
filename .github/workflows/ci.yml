@@ -42,6 +42,13 @@ jobs:
           libxkbcommon-dev libxkbcommon-x11-dev wayland-protocols xorg-dev
       - name: Test with the race detector
         run: go test -race ./...
+      - name: Native Linux amd64 filesystem qualification
+        if: runner.os == 'Linux'
+        run: ./scripts/test-filesystem-linux-amd64.sh
+      - name: Native Windows amd64 filesystem qualification
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: ./scripts/test-filesystem-windows.ps1
       - name: Windows CRAP score ceiling
         if: runner.os == 'Windows'
         run: >-
