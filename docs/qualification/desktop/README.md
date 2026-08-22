@@ -11,7 +11,7 @@ native-tested claim requires the named suite to execute on the target OS.
 | --- | --- | --- | --- |
 | macOS 26.5.2 arm64 | Native arm64 unsigned `Sluice.app` built with private Tachyon and Fylo runtimes and Fyne's opt-in accessibility bridge | Automated lifecycle, visual window and named tray observation, all eight visible status strings in the authorized AX tree, close-to-tray/runtime continuity, tray restore, application-menu Quit, isolated LaunchAgent lifecycle, maintained ten-minute four-process baseline, bounded Tachyon/agent fault recovery, and coordinated shutdown passed | Phase 1 partial; tray-menu actions, notification delivery, real-login launch, VoiceOver announcement, keyboard access, logout, and shutdown remain |
 | macOS 15.7.7 amd64 | Native unsigned `Sluice.app` built with private Tachyon and Fylo runtimes | The packaged four-process runtime passed twice on a hosted Intel runner; Fyne was intentionally not initialized because the runner exposed no usable NSGL pixel format | Phase 1 partial; all graphical, tray/notification, real-login, and accessibility evidence remains |
-| Windows amd64 | Native portable package staging plus ordinary/race Go tests; full Fyne binary also cross-built as PE32+ | The portable layout and Windows process/filesystem code run natively; the pinned Fylo artifact blocks the required full runtime chain before desktop startup | Phase 1 partial; full packaged runtime, registry/autostart, graphical lifecycle, tray/notification, real-login, and accessibility remain |
+| Windows amd64 | Native portable package staging plus ordinary/race Go tests; full Fyne binary also cross-built as PE32+ | The portable layout and Windows process/filesystem code run natively; a hosted native Fyne probe was rejected because the runner exposed no WGL/OpenGL driver, and the pinned Fylo artifact blocks the required full runtime chain | Phase 1 partial; a real graphical host, full packaged runtime, registry/autostart, tray/notification, real-login, and accessibility remain |
 | Linux arm64 | Native unsigned `Sluice.AppDir` built with pinned private runtimes | Headless Xvfb/D-Bus Fyne lifecycle, XDG autostart tests, authenticated health, two starts, and coordinated shutdown passed; the isolated bus lacked tray and notification services | Phase 1 partial; real graphical desktop tray/notification, real-login launch, and accessibility remain |
 | Linux amd64 | Native unsigned `Sluice.AppDir` built with pinned private runtimes | Hosted Xvfb/D-Bus package lifecycle, authenticated health, two starts, coordinated shutdown, and the separate destructive ext4/tmpfs filesystem gate passed | Phase 1 partial; real graphical desktop tray/notification, real-login launch, and accessibility remain |
 
@@ -89,6 +89,7 @@ Platform mechanisms and safety properties are documented in
 `MACOS-2026-08-21.md`; the interactive follow-up is in
 `2026-08-22-macos-arm64-interactive.md`; the packaged topology record is in
 `../runtime/2026-08-21-macos-arm64-app.md`. The headless Linux arm64 record is
-in `LINUX-2026-08-21.md`. Hosted amd64 package-runtime records are in
-`../runtime/2026-08-22-macos-amd64-hosted.md` and
+in `LINUX-2026-08-21.md`. The rejected hosted Windows graphical probe is in
+`2026-08-22-windows-amd64-hosted-probe.md`. Hosted amd64 package-runtime
+records are in `../runtime/2026-08-22-macos-amd64-hosted.md` and
 `../runtime/2026-08-22-linux-amd64-hosted.md`.
