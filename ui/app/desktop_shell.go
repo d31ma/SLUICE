@@ -10,6 +10,7 @@ import (
 	"fyne.io/fyne/v2/driver/desktop"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
+	"fyne.io/systray"
 )
 
 const (
@@ -96,6 +97,12 @@ func (shell *DesktopShell) configureSystemTray(icon fyne.Resource) {
 		fyne.NewMenuItemSeparator(),
 		fyne.NewMenuItem("Quit", shell.RequestQuit),
 	))
+	// Fyne 2.8 does not forward application metadata to the native tray label.
+	// Keep the icon visibly and programmatically named until Fyne issue 6492 lands.
+	shell.application.Lifecycle().SetOnStarted(func() {
+		systray.SetTitle("Sluice")
+		systray.SetTooltip("Sluice")
+	})
 }
 
 func (shell *DesktopShell) buildContent() fyne.CanvasObject {
@@ -111,12 +118,26 @@ func (shell *DesktopShell) buildContent() fyne.CanvasObject {
 		nil,
 		nil,
 		container.NewVBox(
-			widget.NewCard("Status", "Local agent", container.NewVBox(status, description)),
-			widget.NewCard(
+			newAccessibleCard("Status", "Local agent", container.NewVBox(status, description)),
+			newAccessibleCard(
 				"Get started",
 				"Your storage remains under your control",
 				widget.NewLabel("Profile and folder setup becomes available after the local service is connected."),
 			),
 		),
+	)
+}
+
+func newAccessibleCard(title, subtitle string, content fyne.CanvasObject) fyne.CanvasObject {
+	titleLabel := widget.NewLabelWithStyle(title, fyne.TextAlignLeading, fyne.TextStyle{Bold: true})
+	titleLabel.SizeName = theme.SizeNameHeadingText
+	body := container.NewVBox(
+		titleLabel,
+		widget.NewLabel(subtitle),
+		content,
+	)
+	return container.NewStack(
+		widget.NewCard("", "", nil),
+		container.NewPadded(container.NewPadded(body)),
 	)
 }
