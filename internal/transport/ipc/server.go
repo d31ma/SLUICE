@@ -32,19 +32,20 @@ type ServerConfig struct {
 
 // Server serves one request per authenticated local connection.
 type Server struct {
-	handler    http.Handler
-	listener   net.Listener
-	runContext context.Context
-	closeErr   error
-	cancel     context.CancelFunc
-	slots      chan struct{}
-	closed     chan struct{}
-	cleanup    func() error
-	descriptor Descriptor
-	workers    sync.WaitGroup
-	admission  sync.Mutex
-	closeOnce  sync.Once
-	stopping   bool
+	handler     http.Handler
+	listener    net.Listener
+	runContext  context.Context
+	closeErr    error
+	closed      chan struct{}
+	slots       chan struct{}
+	cancel      context.CancelFunc
+	cleanup     func() error
+	connections map[net.Conn]struct{}
+	descriptor  Descriptor
+	workers     sync.WaitGroup
+	closeOnce   sync.Once
+	admission   sync.Mutex
+	stopping    bool
 }
 
 // Listen binds an explicit local endpoint without starting the accept loop.
@@ -82,14 +83,15 @@ func Listen(config ServerConfig) (*Server, error) {
 	descriptor.Address = listener.Addr().String()
 	runContext, cancel := context.WithCancel(context.Background())
 	return &Server{
-		listener:   listener,
-		handler:    config.Handler,
-		runContext: runContext,
-		cancel:     cancel,
-		descriptor: descriptor,
-		slots:      make(chan struct{}, maximum),
-		closed:     make(chan struct{}),
-		cleanup:    cleanup,
+		listener:    listener,
+		handler:     config.Handler,
+		runContext:  runContext,
+		cancel:      cancel,
+		descriptor:  descriptor,
+		connections: make(map[net.Conn]struct{}),
+		slots:       make(chan struct{}, maximum),
+		closed:      make(chan struct{}),
+		cleanup:     cleanup,
 	}, nil
 }
 
@@ -125,30 +127,29 @@ func (server *Server) Serve() error {
 				return fmt.Errorf("accept Sluice agent IPC connection: %w", err)
 			}
 		}
-		select {
-		case server.slots <- struct{}{}:
-		case <-server.closed:
-			_ = connection.Close()
-			return nil
-		}
 		server.admission.Lock()
 		if server.stopping {
 			server.admission.Unlock()
 			_ = connection.Close()
-			<-server.slots
 			return nil
 		}
+		server.connections[connection] = struct{}{}
 		server.workers.Add(1)
 		server.admission.Unlock()
+		select {
+		case server.slots <- struct{}{}:
+		case <-server.closed:
+			server.finishConnection(connection)
+			return nil
+		}
 		go server.serveConnection(connection)
 	}
 }
 
 func (server *Server) serveConnection(connection net.Conn) {
 	defer func() {
-		_ = connection.Close()
 		<-server.slots
-		server.workers.Done()
+		server.finishConnection(connection)
 	}()
 	_ = connection.SetDeadline(time.Now().Add(connectionDeadline))
 	request, err := readWireRequest(connection)
@@ -172,6 +173,14 @@ func (server *Server) serveConnection(connection net.Conn) {
 	if err := writeWireResponse(connection, response); err != nil {
 		return
 	}
+}
+
+func (server *Server) finishConnection(connection net.Conn) {
+	_ = connection.Close()
+	server.admission.Lock()
+	delete(server.connections, connection)
+	server.admission.Unlock()
+	server.workers.Done()
 }
 
 func (server *Server) handle(frame wireRequest) wireResponse {
@@ -215,6 +224,9 @@ func (server *Server) Close(ctx context.Context) error {
 		var cleanupErr error
 		if server.cleanup != nil {
 			cleanupErr = server.cleanup()
+		}
+		for connection := range server.connections {
+			_ = connection.Close()
 		}
 		server.closeErr = errors.Join(listenerErr, cleanupErr)
 		server.admission.Unlock()

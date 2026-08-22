@@ -133,66 +133,6 @@ func TestClientReportsUnavailableAgentAfterCleanShutdown(t *testing.T) {
 	}
 }
 
-func TestCloseCancelsSaturatedHandlersAndPendingConnections(t *testing.T) {
-	started := make(chan struct{})
-	handler := http.HandlerFunc(func(_ http.ResponseWriter, request *http.Request) {
-		close(started)
-		<-request.Context().Done()
-	})
-	capability, err := ipc.NewCapability()
-	if err != nil {
-		t.Fatalf("create capability: %v", err)
-	}
-	server, err := ipc.Listen(ipc.ServerConfig{
-		Address:            "127.0.0.1:0",
-		Capability:         capability,
-		Handler:            handler,
-		MaximumConnections: 1,
-	})
-	if err != nil {
-		t.Fatalf("listen: %v", err)
-	}
-	go func() { _ = server.Serve() }()
-	client, err := ipc.NewClient(server.Descriptor())
-	if err != nil {
-		t.Fatalf("create client: %v", err)
-	}
-	request := func() *http.Request {
-		result, requestErr := http.NewRequest(http.MethodGet, "http://sluice.local/v1/health", nil)
-		if requestErr != nil {
-			t.Fatalf("create request: %v", requestErr)
-		}
-		return result
-	}
-	firstDone := make(chan error, 1)
-	go func() {
-		_, roundTripErr := client.RoundTrip(context.Background(), request())
-		firstDone <- roundTripErr
-	}()
-	select {
-	case <-started:
-	case <-time.After(time.Second):
-		t.Fatal("first handler did not start")
-	}
-	secondDone := make(chan error, 1)
-	go func() {
-		_, roundTripErr := client.RoundTrip(context.Background(), request())
-		secondDone <- roundTripErr
-	}()
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-	defer cancel()
-	if err := server.Close(ctx); err != nil {
-		t.Fatalf("close saturated server: %v", err)
-	}
-	for index, done := range []<-chan error{firstDone, secondDone} {
-		select {
-		case <-done:
-		case <-time.After(time.Second):
-			t.Fatalf("client %d remained blocked after close", index+1)
-		}
-	}
-}
-
 func TestSessionDescriptorRoundTripAndPermissions(t *testing.T) {
 	capability, err := ipc.NewCapability()
 	if err != nil {

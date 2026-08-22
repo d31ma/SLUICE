@@ -45,7 +45,7 @@ func TestCurrentUserPipeSecurityDescriptorGrantsOnlyCurrentUser(t *testing.T) {
 }
 
 func TestNamedPipeDescriptorRejectsArbitraryPipeNames(t *testing.T) {
-	if err := validateTransportAddress("npipe", `\\.\pipe\other-process`); err == nil {
+	if err := validateTransportAddress("npipe", `\\.\pipe\unrelated-process`); err == nil {
 		t.Fatal("validateTransportAddress() error = nil, want arbitrary-pipe rejection")
 	}
 }
