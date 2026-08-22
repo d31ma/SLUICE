@@ -10,9 +10,16 @@ Phase 1 spike.
 Run the installed-runtime suite with missing binaries treated as failures:
 
 ```sh
-SLUICE_REQUIRE_INSTALLED_RUNTIMES=1 go test -race -count=1 \
+SLUICE_REQUIRE_INSTALLED_RUNTIMES=1 \
+  GOOS=darwin GOARCH=arm64 CGO_ENABLED=1 CC='clang -arch arm64' \
+  go test -race -count=1 \
   ./internal/runtime ./internal/state/fylo ./internal/transport/yon
 ```
+
+The explicit target settings matter when the host Go tool itself runs under
+translation: qualification requires the resulting test executables to match
+the named native architecture. Substitute the matching native toolchain and
+target values in Windows and Linux reports.
 
 Without `SLUICE_REQUIRE_INSTALLED_RUNTIMES=1`, these packages remain usable in
 ordinary source checks and skip only the tests whose external artifact is not
@@ -22,6 +29,7 @@ installed. A skip is never qualification evidence.
 
 - [macOS arm64, 2026-08-21](2026-08-21-macos-arm64.md)
 - [macOS arm64 runtime bundle staging, 2026-08-21](2026-08-21-macos-arm64-bundle.md)
+- [Unsigned macOS arm64 application topology, 2026-08-21](2026-08-21-macos-arm64-app.md)
 - [Runtime bundling contract](BUNDLING.md)
 
 ## Promotion rule
@@ -40,4 +48,7 @@ artifacts:
 - mismatch rejection before the Fylo state root is opened; and
 - clean Fylo close, lease release, and restart.
 
-Windows and Linux have no report yet. Their support tier remains unqualified.
+The macOS arm64 report also records the accepted ADR 0008 focused supervisor;
+the released Go shim's missing exclusive-root flag is no longer an open Phase
+1 dependency. Windows and Linux have no report yet. Their support tier remains
+unqualified.

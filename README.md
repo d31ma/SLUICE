@@ -54,8 +54,9 @@ Fylo local state    S3-compatible storage
   Go executable handlers as a versioned REST boundary.
 - **Frontend:** [Fyne](https://fyne.io) for one Go UI codebase and native
   desktop system-tray integration.
-- **Local state:** [Fylo](https://fylo.del.ma), accessed through its Go shim and
-  versioned machine protocol by one long-running agent.
+- **Local state:** [Fylo](https://fylo.del.ma), accessed through the ADR 0008
+  focused Go supervisor and versioned machine protocol by one long-running
+  agent.
 - **Remote content:** a user-selected S3-compatible bucket using a versioned
   Sluice object and manifest protocol.
 
@@ -81,9 +82,15 @@ Each placeholder and mobile target is qualified and promoted independently.
 
 ## Status
 
-Phase 1 feasibility and executable-contract work is underway. The repository
-foundation and initial shared Go/UI contracts exist, but no operating system,
-storage provider, installer, or release tier is supported yet.
+Phase 1 feasibility and executable-contract work is underway. Native macOS
+arm64 evidence now covers the pinned Tachyon/Fylo runtime boundary, private
+Unix-socket Yon-to-agent bridge, APFS atomic-install failure corpus, and an
+unsigned four-process `Sluice.app` topology. The packaged app also passes a
+maintained ten-minute resource baseline, bounded Tachyon/agent recovery, and
+clean shutdown. MinIO and RustFS pass the current S3 provider contract. Native
+Windows/Linux execution, authorized AWS S3, and macOS visual/accessibility and
+real-login checks remain open, so no operating system, storage provider,
+installer, or release tier is supported yet.
 
 Canonical development commands:
 
@@ -93,6 +100,10 @@ make test
 make check
 make build
 ```
+
+The authoritative Phase 1 evidence and remaining gates are in
+[the qualification matrix](docs/qualification/README.md). Cross-compilation
+and unsigned staging are deliberately not presented as support claims.
 
 The durable product, architecture, security, test, release, and phased delivery
 baseline is in [the project plan](docs/PROJECT_PLAN.md).

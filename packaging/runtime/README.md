@@ -23,6 +23,13 @@ arm64 pair inside an isolated temporary directory with:
 make runtime-stage-macos
 ```
 
+To extend the same checksummed payload into an unsigned native application
+bundle and exercise the full desktop/Tachyon/Yon/agent/Fylo topology twice:
+
+```sh
+make app-package-macos
+```
+
 The staging test never writes to `/Applications`, `/Library`, `/usr`, `/opt`,
 or another installation path. A future installer consumes the same relative
 layout beneath its own package root only after target-specific native evidence

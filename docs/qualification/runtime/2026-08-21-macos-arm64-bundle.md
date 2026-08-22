@@ -14,6 +14,7 @@ Evidence was captured at `2026-08-21T22:51:19Z`.
 | Item | Evidence |
 | --- | --- |
 | Host | macOS 26.5.2, build 25F84, Darwin 25.5.0, arm64 kernel |
+| Sluice source | `f179e8522ff22223d9de51e5828d8bfac9b6203c` |
 | Tachyon asset | `ty-macos-arm64` from release `v26.33.02` |
 | Tachyon SHA-256 | `08b90a516ccb665664c3b986e71769cdcc738960e45a0bd8c73ab691a0cda1cd` |
 | Fylo asset | `fylo-macos-arm64` from release `v26.33.02` |
@@ -41,11 +42,18 @@ commit `e236162508f6789f980fa7ca136a6671938030cb`, and build target
 `macos-arm64`. The temporary root was removed automatically. No system path was
 modified.
 
-## Remaining gates
+## Remaining Phase 1 gates
 
-- A real macOS application package must still be signed, notarized, installed,
-  upgraded, rolled back, and run through the installed-runtime suite.
-- Tachyon's CycloneDX SBOM and Fylo's SPDX SBOM must be included in final
+- Windows and Linux require independent native runtime staging and unsigned
+  package-topology runs; their manifest entries remain `not-native-tested`.
+
+The unsigned application topology and bundled-runtime suite pass in the
+isolated native package recorded in
+`2026-08-21-macos-arm64-app.md`.
+
+## Later release gates
+
+- Sign, notarize, install, upgrade, and roll back the final package in Phases 8
+  and 9.
+- Include Tachyon's CycloneDX SBOM and Fylo's SPDX SBOM in the final
   dependency-license and provenance review.
-- Windows and Linux require independent native staging and installation runs;
-  their manifest entries remain `not-native-tested`.

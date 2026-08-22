@@ -31,7 +31,9 @@ diagnostics report all of them explicitly.
 - Go toolchain is pinned by `go.mod` and CI.
 - Tachyon and Fylo releases are pinned in the release manifest and verified by
   checksum/provenance.
-- Fylo binary and Go shim versions must match.
+- The Fylo binary and production protocol integration must match the qualified
+  release identity. ADR 0008 selects the focused supervisor until a matching
+  released Go shim exposes and passes the exclusive-root contract.
 - S3 provider profiles record qualification capability and date.
 - Unknown Tachyon, Fylo, or provider capability versions fail closed before
   external side effects.

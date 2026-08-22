@@ -50,13 +50,22 @@ Packaging must fail closed in this order:
 5. Validate the native executable format and run `ty --version` plus
    `fylo version --output json` directly, without a shell wrapper. Require the
    exact version, Fylo source commit, and Fylo build target.
-6. Run the installed-runtime contract suite against the final installed
-   package on that same target. Staging success alone is not installer or
-   support evidence.
+6. Before support promotion, run the installed-runtime contract suite against
+   the final installed package on that same target. Staging success alone is
+   not installer or support evidence; final installation belongs to Phases 8
+   and 9 rather than the Phase 1 unsigned-topology gate.
 
 `make runtime-stage-macos` performs steps 1 through 5 on a native Apple
 Silicon host. It creates its root with `mktemp`, removes it on exit, and never
 touches system application or binary directories.
+
+`make app-package-macos` extends that isolated staging contract into an
+unsigned native arm64 `Sluice.app`. It builds the three Sluice executables,
+adds the minimal Tachyon route and `Info.plist`, starts the full packaged
+topology twice with a restricted `PATH`, proves authenticated health, and
+requires clean descriptor/socket/process shutdown. The native result is
+recorded in
+`docs/qualification/runtime/2026-08-21-macos-arm64-app.md`.
 
 ## Legal materials
 

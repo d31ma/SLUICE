@@ -29,6 +29,13 @@ they can merge distinct user names. A catalog or reconciliation layer must
 detect target-specific case and normalization collisions and surface a conflict
 before scheduling an installation.
 
+`filesystem.PortableCollisionKey` supplies that conservative catalog identity.
+It applies Unicode NFC followed by default Unicode case folding while retaining
+the original `LogicalPath` unchanged. Distinct original names sharing one key
+must be preserved as a conflict; the key is never a filename and never selects
+a winner. The corpus covers ASCII case, NFC/NFD equivalence, German sharp-s,
+Greek final sigma, and distinct non-colliding names.
+
 ## Physical-root contract
 
 `filesystem.CanonicalizeRoot` accepts absolute or relative configuration input,
@@ -101,5 +108,12 @@ their message. Underlying I/O errors remain available through `errors.Is` and
 
 ## Evidence
 
-See [QUALIFICATION.md](QUALIFICATION.md) for the exact environment, commands,
-results, and remaining native gates.
+The native macOS qualification builds and executes a true arm64 test binary,
+runs the ordinary and race suites, and mounts a disposable 64 MiB APFS image
+for the destructive disk-full fixture. The same run proves APFS case and
+NFC/NFD collision behavior and kills a child after its complete temporary
+payload exists but before rename, then verifies orphan cleanup and recovery.
+It neither modifies the host filesystem layout nor promotes another target.
+
+See [QUALIFICATION.md](QUALIFICATION.md) for the exact environment, command,
+observations, and remaining Windows and Linux native gates.

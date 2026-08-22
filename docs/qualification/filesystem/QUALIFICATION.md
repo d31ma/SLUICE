@@ -6,9 +6,10 @@ Date: 2026-08-21
 
 | Item | Value |
 | --- | --- |
-| Host | macOS 26.5.2 (25F84), Apple Silicon |
-| Go toolchain | Go 1.27.0 darwin/amd64 under translation |
-| Native temporary filesystem | APFS via `testing.T.TempDir` |
+| Host | macOS 26.5.2 (25F84), Mac16,10 with Apple M4 and arm64 kernel |
+| Go toolchain | Go 1.27.0 host tool runs as darwin/amd64 under translation; qualification binaries explicitly target darwin/arm64 |
+| Native temporary filesystem | APFS temporary directories plus an isolated 64 MiB APFS disk image for real ENOSPC |
+| Sluice source | `f179e8522ff22223d9de51e5828d8bfac9b6203c` |
 | Linux evidence | amd64 test binary compiled only |
 | Windows evidence | amd64 test executable compiled only |
 
@@ -36,7 +37,16 @@ The automated corpus covers:
 - forced process termination during streaming followed by locked-orphan cleanup
   and a successful retry; and
 - a kernel-enforced 1 KiB file-size ceiling producing a write failure and clean
-  rollback without consuming the host filesystem.
+  rollback without consuming the host filesystem;
+- conservative NFC plus default-case-fold collision keys that retain both
+  original logical paths;
+- real APFS case and NFC/NFD collisions that preserve the first file and reject
+  the alias without replacement;
+- a partial write ending in kernel `ENOSPC` on an isolated APFS image, leaving
+  neither a destination nor a temporary file; and
+- forced termination after the complete temporary payload exists but before
+  `renameatx_np`, followed by ownership-aware orphan cleanup and a successful
+  retry.
 
 ## Commands and results
 
@@ -62,29 +72,45 @@ PASS (compile only)
 
 GOOS=windows GOARCH=amd64 go test -c -o /tmp/sluice-filesystem-windows.test.exe ./internal/filesystem
 PASS (compile only)
+
+make filesystem-qualify-macos
+PASS
+ok github.com/d31ma/sluice/internal/filesystem (ordinary native arm64 suite)
+ok github.com/d31ma/sluice/internal/filesystem (race-enabled native arm64 suite)
+PASS TestAtomicInstallerCleansUpAfterAPFSENOSPC
+PASS TestAtomicInstallerFailsClosedOnAPFSCollisions/case
+PASS TestAtomicInstallerFailsClosedOnAPFSCollisions/normalization
+PASS TestAtomicInstallerRecoversAfterPreRenameTermination
+filesystem macOS qualification: native arm64, APFS collisions, real ENOSPC,
+and pre-rename recovery passed
 ```
 
 ## Native gates still required
 
-The Phase 1 filesystem spike is not globally green until the same suite and the
-following destructive fixtures run on named native filesystems:
+The macOS arm64 slice passes the recorded Phase 1 filesystem corpus. The spike
+is not globally green until equivalent suites run on the named Windows and
+Linux filesystems:
 
-| Target | Required evidence |
+| Target | Status and required evidence |
 | --- | --- |
-| Windows | NTFS no-replace race, reparse point and junction rejection, ACL/permission denial, disk-full cleanup, forced termination around `MoveFileEx`, and restart verification |
-| macOS | APFS native arm64 run, normalization/case-collision fixtures, real ENOSPC cleanup, and forced termination immediately around `renameatx_np` |
-| Linux | ext4 and one additional supported local filesystem, symlink-swap race, permission denial, disk-full cleanup, `renameat2` unsupported-filesystem behavior, forced termination, and restart verification |
+| macOS arm64 / APFS | Passed: native ordinary and race suites, no-replace race, handle-relative parent-swap containment, permission denial, real ENOSPC cleanup, case and normalization collisions, and pre-rename termination/restart |
+| Windows / NTFS | Pending: native no-replace race, reparse point and junction rejection, ACL/permission denial, disk-full cleanup, forced termination around `MoveFileEx`, and restart verification |
+| Linux / ext4 plus one additional local filesystem | Pending: native handle-relative symlink-swap containment, permission denial, disk-full cleanup, `renameat2` unsupported-filesystem behavior, forced termination, and restart verification |
 
 Network, object-backed, and independently synchronized roots are outside the
 qualified filesystem set. The Fylo root has its own stricter placement gate.
 
 ## Qualification decision
 
-The portable path grammar and stable-file atomic installation contract pass on
-the recorded macOS/APFS environment. The locally safe permission, cancellation,
-kernel write-failure, forced-stream-interruption recovery, and hostile
-parent-symlink-swap gates pass. A real disk-full fixture remains necessary
-because `RLIMIT_FSIZE` proves write-error cleanup but not APFS ENOSPC behavior.
-Windows and Linux compile, but remain unqualified until native execution and
-handle-relative containment evidence exist. See
+The portable path grammar, conservative collision key, and stable-file atomic
+installation contract pass on the recorded native arm64 macOS/APFS
+environment. The permission, cancellation, real ENOSPC, collision,
+forced-pre-rename recovery, and hostile parent-swap gates pass. Windows and
+Linux compile, but remain unqualified until native execution and equivalent
+handle-relative containment evidence exist.
+
+The installer's documented ambiguous outcome after a successful rename but a
+failed directory flush remains an input to the later durable operation-ledger
+and reconciliation slices. This narrow Phase 1 installer record does not claim
+that later recovery workflow is implemented. See
 [README.md](README.md#link-safety-boundary).
