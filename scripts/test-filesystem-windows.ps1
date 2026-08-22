@@ -17,7 +17,14 @@ if ([string]::IsNullOrWhiteSpace($env:RUNNER_TEMP)) {
 $scratchPrefix = [IO.Path]::GetFullPath((Join-Path $env:RUNNER_TEMP 'sluice-filesystem-windows-'))
 $scratchRoot = $scratchPrefix + [Guid]::NewGuid().ToString('N')
 $vhdPath = Join-Path $scratchRoot 'enospc.vhdx'
-$mountRoot = Join-Path $scratchRoot 'enospc'
+$usedDriveLetters = @(Get-Volume | Where-Object DriveLetter | ForEach-Object { [string] $_.DriveLetter })
+$driveLetter = @('Z', 'Y', 'X', 'W', 'V', 'U', 'T', 'S', 'R') |
+    Where-Object { $usedDriveLetters -notcontains $_ } |
+    Select-Object -First 1
+if ([string]::IsNullOrWhiteSpace($driveLetter)) {
+    throw 'filesystem Windows qualification could not find an unused drive letter'
+}
+$volumeRoot = [string]::Concat($driveLetter, ':\')
 $junctionFixture = Join-Path $scratchRoot 'junction-fixture'
 $junctionRoot = Join-Path $junctionFixture 'root'
 $junctionOutside = Join-Path $junctionFixture 'outside'
@@ -44,7 +51,7 @@ function Invoke-QualificationDiskPart {
 }
 
 try {
-    New-Item -ItemType Directory -Path $mountRoot, $junctionRoot, $junctionOutside | Out-Null
+    New-Item -ItemType Directory -Path $junctionRoot, $junctionOutside | Out-Null
     New-Item -ItemType Junction -Path $junctionPath -Target $junctionOutside | Out-Null
     if (-not ((Get-Item -LiteralPath $junctionPath -Force).Attributes -band [IO.FileAttributes]::ReparsePoint)) {
         throw 'junction fixture is not a reparse point'
@@ -56,12 +63,12 @@ try {
         'attach vdisk',
         'create partition primary',
         'format fs=ntfs label=SLUICE_ENOSPC quick',
-        "assign mount=`"$mountRoot`"",
+        "assign letter=$driveLetter",
         'exit'
     )
     $attached = $true
 
-    $volume = Get-Volume -FilePath $mountRoot
+    $volume = Get-Volume -DriveLetter $driveLetter
     if ($volume.FileSystem -ne 'NTFS') {
         throw "filesystem Windows qualification requires NTFS, got $($volume.FileSystem)"
     }
@@ -73,7 +80,7 @@ try {
     $env:SLUICE_FS_REQUIRE_NATIVE_LINKS = '1'
     $env:SLUICE_FS_REQUIRE_WINDOWS_NATIVE = '1'
     $env:SLUICE_FS_WINDOWS_JUNCTION_ROOT = $junctionRoot
-    $env:SLUICE_FS_WINDOWS_ENOSPC_ROOT = $mountRoot
+    $env:SLUICE_FS_WINDOWS_ENOSPC_ROOT = $volumeRoot
     go test -race -count=1 ./internal/filesystem
     if ($LASTEXITCODE -ne 0) {
         throw "Windows filesystem qualification tests failed with exit code $LASTEXITCODE"
