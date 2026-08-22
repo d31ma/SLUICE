@@ -98,10 +98,12 @@ RustFS pass the current S3 provider contract. Destructive Linux amd64 and
 Windows NTFS filesystem qualification now pass on their recorded native hosts.
 Interactive desktop execution, authorized AWS S3, and visual/accessibility and
 real-login checks remain open. The native package builders now opt into Fyne's
-experimental accessibility bridge, and macOS arm64 has visual window and tray
-icon evidence, but screen-reader, keyboard, tray-menu, and login-session gates
-remain. No operating system, storage provider, installer, or release tier is
-supported yet.
+experimental accessibility bridge. macOS arm64 now has visual window and named
+tray evidence, an eight-string native AX audit, close-to-tray/runtime
+continuity, tray restore, and clean application-menu Quit. VoiceOver
+announcement, keyboard, tray-menu, notification, real-login, logout, and
+shutdown gates remain. No operating system, storage provider, installer, or
+release tier is supported yet.
 
 Canonical development commands:
 
