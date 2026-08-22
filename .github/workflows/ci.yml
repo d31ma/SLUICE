@@ -77,3 +77,77 @@ jobs:
         run: make licenses
       - name: Documentation and contracts
         run: make docs
+
+  installed-runtime:
+    name: Installed runtimes ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+    env:
+      SLUICE_REQUIRE_INSTALLED_RUNTIMES: "1"
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
+        with:
+          go-version-file: go.mod
+          cache: true
+          cache-dependency-path: go.sum
+      - name: Install pinned Linux amd64 runtimes
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          set -euo pipefail
+          runtime_dir="$RUNNER_TEMP/sluice-runtime"
+          mkdir -p "$runtime_dir"
+          curl --fail --location --silent --show-error --proto '=https' --tlsv1.2 \
+            --output "$runtime_dir/ty" \
+            https://github.com/d31ma/Tachyon/releases/download/v26.33.02/ty-linux-x64
+          curl --fail --location --silent --show-error --proto '=https' --tlsv1.2 \
+            --output "$runtime_dir/fylo" \
+            https://github.com/d31ma/FYLO/releases/download/v26.33.02/fylo-linux-x64
+          printf '%s  %s\n' \
+            c662da31be584364b1d0554df232336a047b90ba66ab9bde9c87e248bb184616 "$runtime_dir/ty" \
+            8d60479cc189afb991d969917158d93d78897dcd0ca3aa7e062be186982644e8 "$runtime_dir/fylo" \
+            | sha256sum --check
+          chmod 0755 "$runtime_dir/ty" "$runtime_dir/fylo"
+          echo "$runtime_dir" >> "$GITHUB_PATH"
+      - name: Install pinned Windows amd64 runtimes
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $runtimeDir = Join-Path $env:RUNNER_TEMP 'sluice-runtime'
+          New-Item -ItemType Directory -Force -Path $runtimeDir | Out-Null
+          $ty = Join-Path $runtimeDir 'ty.exe'
+          $fylo = Join-Path $runtimeDir 'fylo.exe'
+          Invoke-WebRequest -Uri 'https://github.com/d31ma/Tachyon/releases/download/v26.33.02/ty-windows-x64.exe' -OutFile $ty
+          Invoke-WebRequest -Uri 'https://github.com/d31ma/FYLO/releases/download/v26.33.02/fylo-windows-x64.exe' -OutFile $fylo
+          $expected = @{
+            $ty = '00198a58534faff29f2373a2649c58f176e3305aa77242f59cee6530c7c371d5'
+            $fylo = 'd57a612d5abb770bc3e228a08b6a628341364b19fe8c62a6418bbb178ef41f34'
+          }
+          foreach ($path in $expected.Keys) {
+            $actual = (Get-FileHash -Algorithm SHA256 -Path $path).Hash.ToLowerInvariant()
+            if ($actual -ne $expected[$path]) {
+              throw "checksum mismatch for $path"
+            }
+          }
+          $runtimeDir | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+      - name: Record native runner
+        shell: bash
+        run: |
+          go version
+          go env GOOS GOARCH
+      - name: Run installed-runtime and production IPC contracts
+        run: >-
+          go test -race -count=1
+          ./internal/runtime ./internal/state/fylo ./internal/transport/ipc
+          ./internal/agent ./internal/transport/localapi ./internal/transport/yon
+          ./cmd/sluice-agent
