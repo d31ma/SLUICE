@@ -3,7 +3,7 @@ ACTIVE_GO := $(shell $(GO) env GOROOT)/bin/go
 
 .DEFAULT_GOAL := help
 
-.PHONY: help bootstrap runtime-tools fmt fmt-check vet lint test test-race crap vuln licenses docs workflows runtime-contract app-bundle-contract runtime-stage-macos app-package-macos app-package-windows app-runtime-qualify-macos filesystem-qualify-macos linux-qualify-arm64 build check
+.PHONY: help bootstrap runtime-tools fmt fmt-check vet lint test test-race crap vuln licenses docs workflows runtime-contract app-bundle-contract runtime-stage-macos app-package-macos app-package-linux app-package-windows app-runtime-qualify-macos filesystem-qualify-macos linux-qualify-arm64 build check
 
 help:
 	@echo "Sluice development commands"
@@ -12,8 +12,9 @@ help:
 	@echo "  make check      run the complete local quality gate"
 	@echo "  make runtime-contract  validate pinned runtime bundle metadata"
 	@echo "  make workflows  validate immutable GitHub Actions references"
-	@echo "  make runtime-stage-macos  stage and execute the macOS arm64 runtime payload"
-	@echo "  make app-package-macos  stage and exercise an unsigned native macOS arm64 Sluice.app"
+	@echo "  make runtime-stage-macos  stage and execute the current native macOS runtime payload"
+	@echo "  make app-package-macos  stage and exercise an unsigned native macOS Sluice.app"
+	@echo "  make app-package-linux  stage and exercise an unsigned native Linux AppDir"
 	@echo "  make app-package-windows  stage and exercise a native Windows amd64 portable package"
 	@echo "  make app-runtime-qualify-macos  record a ten-minute native packaged-process baseline"
 	@echo "  make filesystem-qualify-macos  run native arm64 APFS destructive fixtures in an isolated image"
@@ -71,6 +72,9 @@ runtime-stage-macos:
 
 app-package-macos:
 	./scripts/test-app-bundle-macos.sh
+
+app-package-linux:
+	./scripts/test-app-bundle-linux.sh
 
 app-package-windows:
 	pwsh -NoLogo -NoProfile -File ./scripts/test-app-bundle-windows.ps1

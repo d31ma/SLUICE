@@ -3,10 +3,15 @@ set -eu
 
 repo_root=$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd)
 
-if [ "$(uname -s)" != Darwin ] || [ "$(uname -m)" != arm64 ]; then
-  echo "app bundle staging: requires a native Darwin arm64 host" >&2
+if [ "$(uname -s)" != Darwin ]; then
+  echo "app bundle staging: requires a native Darwin host" >&2
   exit 1
 fi
+case "$(uname -m)" in
+  arm64) goarch=arm64 ;;
+  x86_64) goarch=amd64 ;;
+  *) echo "app bundle staging: unsupported macOS architecture $(uname -m)" >&2; exit 1 ;;
+esac
 
 if [ "$#" -ne 1 ]; then
   echo "usage: $0 ABSOLUTE_EMPTY_STAGE_DIRECTORY" >&2
@@ -43,11 +48,11 @@ contents="$app_root/Contents"
 mkdir -p "$contents/MacOS" "$contents/Helpers"
 
 cd "$repo_root"
-GOOS=darwin GOARCH=arm64 CGO_ENABLED=1 \
+GOOS=darwin GOARCH="$goarch" CGO_ENABLED=1 \
   go build -trimpath -o "$contents/MacOS/sluice-desktop" ./cmd/sluice-desktop
-GOOS=darwin GOARCH=arm64 CGO_ENABLED=0 \
+GOOS=darwin GOARCH="$goarch" CGO_ENABLED=0 \
   go build -trimpath -o "$contents/Helpers/sluice-agent" ./cmd/sluice-agent
-GOOS=darwin GOARCH=arm64 CGO_ENABLED=0 \
+GOOS=darwin GOARCH="$goarch" CGO_ENABLED=0 \
   go build -trimpath -o "$contents/Helpers/sluice-yon" ./internal/transport/yon/cmd/sluice-yon
 
 cp "$repo_root/packaging/macos/Info.plist" "$contents/Info.plist"
@@ -66,9 +71,11 @@ for program in \
   "$contents/MacOS/sluice-desktop" \
   "$contents/Helpers/sluice-agent" \
   "$contents/Helpers/sluice-yon"; do
-  case "$(file -b "$program")" in
-    *"Mach-O 64-bit executable arm64"*) ;;
-    *) echo "app bundle staging: $(basename -- "$program") is not Mach-O arm64" >&2; exit 1 ;;
+  description=$(file -b "$program")
+  case "$goarch:$description" in
+    arm64:*"Mach-O 64-bit executable arm64"*) ;;
+    amd64:*"Mach-O 64-bit executable x86_64"*) ;;
+    *) echo "app bundle staging: $(basename -- "$program") is not Mach-O $goarch" >&2; exit 1 ;;
   esac
 done
 
@@ -80,4 +87,4 @@ test -f "$contents/Resources/licenses/Tachyon/LICENSE"
 test -f "$contents/Resources/licenses/Tachyon/NOTICE"
 test -f "$contents/Resources/licenses/Fylo/LICENSE"
 
-echo "app bundle staging: unsigned macOS arm64 Sluice.app passed in $stage_root"
+echo "app bundle staging: unsigned macOS $goarch Sluice.app passed in $stage_root"

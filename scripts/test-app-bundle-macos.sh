@@ -2,10 +2,38 @@
 set -eu
 
 repo_root=$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd)
-stage_root=$(mktemp -d "${TMPDIR:-/tmp}/sluice-app-stage.XXXXXX")
-trap 'rm -rf "$stage_root"' EXIT HUP INT TERM
+case "$#" in
+  0)
+    stage_root=$(mktemp -d "${TMPDIR:-/tmp}/sluice-app-stage.XXXXXX")
+    owns_stage=1
+    ;;
+  1)
+    stage_root=$1
+    owns_stage=0
+    case "$stage_root" in
+      /*) ;;
+      *) echo "app bundle test: staged root must be absolute" >&2; exit 2 ;;
+    esac
+    ;;
+  *)
+    echo "usage: $0 [ABSOLUTE_STAGED_DIRECTORY]" >&2
+    exit 2
+    ;;
+esac
 
-"$repo_root/scripts/stage-app-bundle-macos.sh" "$stage_root"
+cleanup() {
+  if [ "$owns_stage" -eq 1 ]; then
+    case "$stage_root" in
+      "${TMPDIR:-/tmp}"/sluice-app-stage.*) rm -R -- "$stage_root" ;;
+      *) echo "refusing to remove unexpected scratch path: $stage_root" >&2 ;;
+    esac
+  fi
+}
+trap cleanup EXIT HUP INT TERM
+
+if [ "$owns_stage" -eq 1 ]; then
+  "$repo_root/scripts/stage-app-bundle-macos.sh" "$stage_root"
+fi
 
 app="$stage_root/Sluice.app"
 desktop="$app/Contents/MacOS/sluice-desktop"

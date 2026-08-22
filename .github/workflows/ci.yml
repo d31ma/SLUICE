@@ -88,6 +88,7 @@ jobs:
         os:
           - ubuntu-latest
           - windows-latest
+          - macos-15-intel
     env:
       SLUICE_REQUIRE_INSTALLED_RUNTIMES: "1"
     steps:
@@ -99,25 +100,26 @@ jobs:
           go-version-file: go.mod
           cache: true
           cache-dependency-path: go.sum
-      - name: Install pinned Linux amd64 runtimes
+      - name: Install Linux package build dependencies
         if: runner.os == 'Linux'
         shell: bash
         run: |
           set -euo pipefail
-          runtime_dir="$RUNNER_TEMP/sluice-runtime"
-          mkdir -p "$runtime_dir"
-          curl --fail --location --silent --show-error --proto '=https' --tlsv1.2 \
-            --output "$runtime_dir/ty" \
-            https://github.com/d31ma/Tachyon/releases/download/v26.33.02/ty-linux-x64
-          curl --fail --location --silent --show-error --proto '=https' --tlsv1.2 \
-            --output "$runtime_dir/fylo" \
-            https://github.com/d31ma/FYLO/releases/download/v26.33.02/fylo-linux-x64
-          printf '%s  %s\n' \
-            c662da31be584364b1d0554df232336a047b90ba66ab9bde9c87e248bb184616 "$runtime_dir/ty" \
-            8d60479cc189afb991d969917158d93d78897dcd0ca3aa7e062be186982644e8 "$runtime_dir/fylo" \
-            | sha256sum --check
-          chmod 0755 "$runtime_dir/ty" "$runtime_dir/fylo"
-          echo "$runtime_dir" >> "$GITHUB_PATH"
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends \
+            dbus-x11 desktop-file-utils file procps ruby xauth xvfb \
+            libdecor-0-dev libegl1-mesa-dev libgl1-mesa-dev \
+            libwayland-dev libxkbcommon-dev libxkbcommon-x11-dev \
+            wayland-protocols xorg-dev
+      - name: Stage native Linux amd64 AppDir
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          set -euo pipefail
+          stage_root="$RUNNER_TEMP/sluice-linux-package"
+          ./scripts/stage-app-bundle-linux.sh "$stage_root"
+          echo "SLUICE_LINUX_STAGE=$stage_root" >> "$GITHUB_ENV"
+          echo "$stage_root/Sluice.AppDir/usr/lib/sluice/runtime/bin" >> "$GITHUB_PATH"
       - name: Stage native Windows amd64 portable package
         if: runner.os == 'Windows'
         shell: pwsh
@@ -128,6 +130,15 @@ jobs:
           "SLUICE_WINDOWS_STAGE=$stageRoot" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           $runtimeDir = Join-Path $stageRoot 'Sluice/runtime/bin'
           $runtimeDir | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+      - name: Stage native macOS amd64 application package
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -euo pipefail
+          stage_root="$RUNNER_TEMP/sluice-macos-package"
+          ./scripts/stage-app-bundle-macos.sh "$stage_root"
+          echo "SLUICE_MACOS_STAGE=$stage_root" >> "$GITHUB_ENV"
+          echo "$stage_root/Sluice.app/Contents/Resources/runtime/bin" >> "$GITHUB_PATH"
       - name: Record native runner
         shell: bash
         run: |
@@ -145,3 +156,11 @@ jobs:
         run: >-
           ./scripts/test-app-bundle-windows.ps1
           -StagedRoot $env:SLUICE_WINDOWS_STAGE
+      - name: Exercise native macOS package topology twice
+        if: runner.os == 'macOS'
+        shell: bash
+        run: ./scripts/test-app-bundle-macos.sh "$SLUICE_MACOS_STAGE"
+      - name: Exercise native Linux package topology twice
+        if: runner.os == 'Linux'
+        shell: bash
+        run: ./scripts/test-app-bundle-linux.sh "$SLUICE_LINUX_STAGE"
