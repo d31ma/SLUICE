@@ -182,8 +182,8 @@ func TestAtomicInstallerFailsClosedAfterWindowsACLDenial(t *testing.T) {
 	if !errors.Is(err, windows.ERROR_ACCESS_DENIED) {
 		t.Fatalf("Install() error = %v, want Windows access denial", err)
 	}
-	if got := filesystem.CodeOf(err); got != filesystem.CodeIO {
-		t.Fatalf("CodeOf(permission denial) = %q, want %q", got, filesystem.CodeIO)
+	if got := filesystem.CodeOf(err); got != filesystem.CodeUnsafeParent {
+		t.Fatalf("CodeOf(permission denial) = %q, want %q", got, filesystem.CodeUnsafeParent)
 	}
 }
 
@@ -197,6 +197,7 @@ func TestAtomicInstallerCleansUpAfterWindowsDiskFull(t *testing.T) {
 		t.Fatalf("MkdirTemp(qualification volume) error = %v", err)
 	}
 	t.Cleanup(func() { _ = os.RemoveAll(rootPath) }) //nolint:gosec // Child directory of the explicitly isolated qualification VHD.
+	installer := newInstaller(t, rootPath)
 	reserve := filepath.Join(rootPath, "space-reserve")
 	writeWindowsFile(t, reserve, 8*1024*1024)
 	fillWindowsVolume(t, filepath.Join(rootPath, "filler"))
@@ -206,7 +207,6 @@ func TestAtomicInstallerCleansUpAfterWindowsDiskFull(t *testing.T) {
 
 	content := bytes.Repeat([]byte("w"), 16*1024*1024)
 	source := bytes.NewReader(content)
-	installer := newInstaller(t, rootPath)
 	_, err = installer.Install(context.Background(), filesystem.InstallRequest{
 		Path:           mustLogicalPath(t, "file.bin"),
 		Source:         source,
