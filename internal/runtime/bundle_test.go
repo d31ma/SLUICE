@@ -32,13 +32,7 @@ func TestOpenMacOSBundleResolvesEveryPackagedRuntimeFromDesktopExecutable(t *tes
 	if err != nil {
 		t.Fatalf("OpenMacOSBundle() error = %v", err)
 	}
-	canonicalRoot := filepath.Clean(root)
-	if runtime.GOOS != "windows" {
-		canonicalRoot, err = filepath.EvalSymlinks(root)
-		if err != nil {
-			t.Fatalf("canonicalize fixture: %v", err)
-		}
-	}
+	canonicalRoot := canonicalFixtureRoot(t, root)
 	want := runtimeexec.MacOSBundle{
 		Root:             canonicalRoot,
 		DesktopBinary:    filepath.Join(canonicalRoot, "Contents/MacOS/sluice-desktop"),
@@ -91,10 +85,7 @@ func TestOpenLinuxBundleResolvesEveryPackagedRuntimeFromAppRun(t *testing.T) {
 	if err != nil {
 		t.Fatalf("OpenLinuxBundle() error = %v", err)
 	}
-	canonicalRoot, err := filepath.EvalSymlinks(root)
-	if err != nil {
-		t.Fatalf("canonicalize fixture: %v", err)
-	}
+	canonicalRoot := canonicalFixtureRoot(t, root)
 	want := runtimeexec.Bundle{
 		Root:             canonicalRoot,
 		DesktopBinary:    filepath.Join(canonicalRoot, "AppRun"),
@@ -146,10 +137,7 @@ func TestOpenWindowsBundleResolvesEveryPackagedRuntime(t *testing.T) {
 	if err != nil {
 		t.Fatalf("OpenWindowsBundle() error = %v", err)
 	}
-	canonicalRoot, err := filepath.EvalSymlinks(root)
-	if err != nil {
-		t.Fatalf("canonicalize fixture: %v", err)
-	}
+	canonicalRoot := canonicalFixtureRoot(t, root)
 	want := runtimeexec.Bundle{
 		Root:             canonicalRoot,
 		DesktopBinary:    filepath.Join(canonicalRoot, "sluice-desktop.exe"),
@@ -193,4 +181,16 @@ func writeBundleFixture(t *testing.T, root, relative string, mode os.FileMode) {
 			t.Fatalf("make fixture executable: %v", err)
 		}
 	}
+}
+
+func canonicalFixtureRoot(t *testing.T, root string) string {
+	t.Helper()
+	if runtime.GOOS == "windows" {
+		return filepath.Clean(root)
+	}
+	canonical, err := filepath.EvalSymlinks(root)
+	if err != nil {
+		t.Fatalf("canonicalize fixture: %v", err)
+	}
+	return canonical
 }

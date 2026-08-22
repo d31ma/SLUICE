@@ -2,6 +2,7 @@ package lifecycle
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"os"
 	"path/filepath"
@@ -53,8 +54,15 @@ func TestCoordinatorStartsAndStopsThePackagedTopologyInDependencyOrder(t *testin
 			if readErr != nil {
 				t.Fatalf("read materialized .tachyonrc: %v", readErr)
 			}
-			if !strings.Contains(string(configuration), bundle.YonBinary) {
-				t.Fatalf(".tachyonrc = %q, want bundled Yon path", configuration)
+			var parsed struct {
+				Interpreters map[string][]string `json:"interpreters"`
+			}
+			if decodeErr := json.Unmarshal(configuration, &parsed); decodeErr != nil {
+				t.Fatalf("decode materialized .tachyonrc: %v", decodeErr)
+			}
+			arguments := parsed.Interpreters["sluice"]
+			if len(arguments) != 3 || arguments[0] != bundle.YonBinary {
+				t.Fatalf(".tachyonrc interpreter = %#v, want bundled Yon path", arguments)
 			}
 			return tachyon, nil
 		},

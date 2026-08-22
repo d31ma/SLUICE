@@ -1,8 +1,10 @@
 package lifecycle
 
 import (
+	"crypto/sha256"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 
 	"github.com/d31ma/sluice/internal/transport/ipc"
@@ -14,9 +16,13 @@ type generationResources struct {
 }
 
 type fileIdentity struct {
-	metadata os.FileInfo
-	path     string
+	metadata       os.FileInfo
+	path           string
+	fingerprint    [sha256.Size]byte
+	hasFingerprint bool
 }
+
+const maximumIdentityBytes = 4096
 
 func captureGenerationResources(sessionFile string, descriptor ipc.Descriptor) generationResources {
 	return generationResources{
@@ -30,7 +36,16 @@ func captureRegularFile(path string) fileIdentity {
 	if err != nil || !metadata.Mode().IsRegular() || metadata.Mode()&os.ModeSymlink != 0 {
 		return fileIdentity{}
 	}
-	return fileIdentity{path: path, metadata: metadata}
+	fingerprint, ok := fingerprintRegularFile(path, metadata)
+	if !ok {
+		return fileIdentity{}
+	}
+	return fileIdentity{
+		path:           path,
+		metadata:       metadata,
+		fingerprint:    fingerprint,
+		hasFingerprint: true,
+	}
 }
 
 func (resources generationResources) cleanup() error {
@@ -65,7 +80,34 @@ func (identity fileIdentity) currentFile(label string) (os.FileInfo, bool, error
 	if err != nil {
 		return nil, false, fmt.Errorf("inspect stale %s: %w", label, err)
 	}
-	return current, os.SameFile(identity.metadata, current), nil
+	if !os.SameFile(identity.metadata, current) {
+		return current, false, nil
+	}
+	if !identity.hasFingerprint {
+		return current, true, nil
+	}
+	fingerprint, ok := fingerprintRegularFile(identity.path, current)
+	return current, ok && fingerprint == identity.fingerprint, nil
+}
+
+func fingerprintRegularFile(path string, expected os.FileInfo) ([sha256.Size]byte, bool) {
+	var empty [sha256.Size]byte
+	// #nosec G304 -- path is the captured private descriptor path and the
+	// opened file is checked against the expected identity before use.
+	file, err := os.Open(path)
+	if err != nil {
+		return empty, false
+	}
+	defer func() { _ = file.Close() }()
+	opened, err := file.Stat()
+	if err != nil || !opened.Mode().IsRegular() || !os.SameFile(expected, opened) {
+		return empty, false
+	}
+	contents, err := io.ReadAll(io.LimitReader(file, maximumIdentityBytes+1))
+	if err != nil || len(contents) > maximumIdentityBytes {
+		return empty, false
+	}
+	return sha256.Sum256(contents), true
 }
 
 func matchesRequiredType(mode, required os.FileMode) bool {

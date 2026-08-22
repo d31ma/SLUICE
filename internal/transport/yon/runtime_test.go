@@ -209,7 +209,24 @@ func buildGoProgram(t *testing.T, ctx context.Context, name, packagePath string)
 	if err != nil {
 		t.Fatalf("open Go executable: %v", err)
 	}
-	environment := runtimeexec.AllowEnvironment("PATH", "HOME", "TMPDIR", "TMP", "TEMP", "SystemRoot", "GOTOOLCHAIN")
+	environment := runtimeexec.AllowEnvironment(
+		"PATH",
+		"HOME",
+		"USERPROFILE",
+		"HOMEDRIVE",
+		"HOMEPATH",
+		"LOCALAPPDATA",
+		"APPDATA",
+		"TMPDIR",
+		"TMP",
+		"TEMP",
+		"SystemRoot",
+		"GOPATH",
+		"GOMODCACHE",
+		"GOCACHE",
+		"GOROOT",
+		"GOTOOLCHAIN",
+	)
 	environment = append(
 		environment,
 		"CGO_ENABLED=0",
