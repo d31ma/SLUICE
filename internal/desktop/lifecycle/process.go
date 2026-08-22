@@ -2,7 +2,6 @@ package lifecycle
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -36,6 +35,7 @@ func startAgentProcess(_ context.Context, request agentRequest) (managedProcess,
 	command := executable.Command(context.Background(), packagedEnvironment(), arguments...)
 	command.Stdout = io.Discard
 	command.Stderr = io.Discard
+	runtimeexec.ConfigureInterruptibleProcess(command)
 	if err := command.Start(); err != nil {
 		return nil, err
 	}
@@ -85,7 +85,7 @@ func (process *childProcess) exited() (bool, error) {
 }
 
 func (process *childProcess) interrupt() {
-	if err := process.process.Signal(os.Interrupt); err != nil && !errors.Is(err, os.ErrProcessDone) {
+	if err := runtimeexec.InterruptProcess(process.process); err != nil {
 		_ = process.process.Kill()
 	}
 }

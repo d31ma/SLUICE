@@ -302,6 +302,7 @@ func startQualifiedAgent(
 	)
 	command.Stdout = io.Discard
 	command.Stderr = io.Discard
+	runtimeexec.ConfigureInterruptibleProcess(command)
 	if err := command.Start(); err != nil {
 		t.Fatalf("start qualified agent: %v", err)
 	}
@@ -312,7 +313,7 @@ func startQualifiedAgent(
 
 func (process *qualificationProcess) Close(ctx context.Context) error {
 	process.once.Do(func() {
-		if err := process.command.Process.Signal(os.Interrupt); err != nil && !errors.Is(err, os.ErrProcessDone) {
+		if err := runtimeexec.InterruptProcess(process.command.Process); err != nil && !errors.Is(err, os.ErrProcessDone) {
 			_ = process.command.Process.Kill()
 		}
 		select {

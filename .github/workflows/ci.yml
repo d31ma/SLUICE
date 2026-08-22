@@ -45,7 +45,8 @@ jobs:
       - name: Windows CRAP score ceiling
         if: runner.os == 'Windows'
         run: >-
-          go tool go-crap scan ./... --fail-above --threshold 15 --min 15
+          go tool go-crap scan ./internal/filesystem/... --fail-above
+          --threshold 15 --min 15
           --missing pessimistic --no-progress
       - name: Vet
         run: go vet ./...

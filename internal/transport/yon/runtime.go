@@ -120,6 +120,7 @@ func (runtime *Runtime) Start(ctx context.Context, config ServeConfig) (*Server,
 	command := runtime.executable.Command(context.Background(), environment, arguments...)
 	command.Stdout = io.Discard
 	command.Stderr = io.Discard
+	runtimeexec.ConfigureInterruptibleProcess(command)
 	if err := command.Start(); err != nil {
 		return nil, fmt.Errorf("start Tachyon runtime: %w", err)
 	}
@@ -223,7 +224,7 @@ func (server *Server) Close(ctx context.Context) error {
 }
 
 func (server *Server) stop(ctx context.Context) error {
-	if err := server.process.Signal(os.Interrupt); err != nil && !errors.Is(err, os.ErrProcessDone) {
+	if err := runtimeexec.InterruptProcess(server.process); err != nil && !errors.Is(err, os.ErrProcessDone) {
 		_ = server.process.Kill()
 	}
 	timer := time.NewTimer(shutdownGrace)
