@@ -3,7 +3,7 @@ ACTIVE_GO := $(shell $(GO) env GOROOT)/bin/go
 
 .DEFAULT_GOAL := help
 
-.PHONY: help bootstrap fmt fmt-check vet lint test test-race crap vuln licenses docs workflows runtime-contract app-bundle-contract runtime-stage-macos app-package-macos app-runtime-qualify-macos filesystem-qualify-macos build check
+.PHONY: help bootstrap fmt fmt-check vet lint test test-race crap vuln licenses docs workflows runtime-contract app-bundle-contract runtime-stage-macos app-package-macos app-runtime-qualify-macos filesystem-qualify-macos linux-qualify-arm64 build check
 
 help:
 	@echo "Sluice development commands"
@@ -16,6 +16,7 @@ help:
 	@echo "  make app-package-macos  stage and exercise an unsigned native macOS arm64 Sluice.app"
 	@echo "  make app-runtime-qualify-macos  record a ten-minute native packaged-process baseline"
 	@echo "  make filesystem-qualify-macos  run native arm64 APFS destructive fixtures in an isolated image"
+	@echo "  make linux-qualify-arm64  run native Linux arm64 runtime, IPC, filesystem, and AppDir qualification"
 	@echo "  make build      build all Go packages"
 
 bootstrap:
@@ -72,6 +73,9 @@ app-runtime-qualify-macos:
 
 filesystem-qualify-macos:
 	./scripts/test-filesystem-macos.sh
+
+linux-qualify-arm64:
+	./scripts/qualify-linux-arm64-container.sh
 
 build:
 	$(GO) build ./...

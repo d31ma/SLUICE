@@ -66,6 +66,61 @@ func TestOpenMacOSBundleRejectsDevelopmentAndIncompleteLayouts(t *testing.T) {
 	}
 }
 
+func TestOpenLinuxBundleResolvesEveryPackagedRuntimeFromAppRun(t *testing.T) {
+	root := filepath.Join(t.TempDir(), "Sluice.AppDir")
+	paths := map[string]os.FileMode{
+		"AppRun":                          0o755,
+		"usr/libexec/sluice/sluice-agent": 0o755,
+		"usr/libexec/sluice/sluice-yon":   0o755,
+		"usr/lib/sluice/runtime/bin/ty":   0o755,
+		"usr/lib/sluice/runtime/bin/fylo": 0o755,
+		"usr/share/sluice/tachyon/server/routes/v1/health/yon.sluice": 0o600,
+		"sluice.desktop": 0o600,
+	}
+	for relative, mode := range paths {
+		writeBundleFixture(t, root, relative, mode)
+	}
+	if err := os.MkdirAll(filepath.Join(root, "usr/share/doc/sluice/licenses"), 0o700); err != nil {
+		t.Fatalf("create license fixture: %v", err)
+	}
+
+	bundle, err := runtimeexec.OpenLinuxBundle(filepath.Join(root, "AppRun"))
+	if err != nil {
+		t.Fatalf("OpenLinuxBundle() error = %v", err)
+	}
+	canonicalRoot, err := filepath.EvalSymlinks(root)
+	if err != nil {
+		t.Fatalf("canonicalize fixture: %v", err)
+	}
+	want := runtimeexec.Bundle{
+		Root:             canonicalRoot,
+		DesktopBinary:    filepath.Join(canonicalRoot, "AppRun"),
+		AgentBinary:      filepath.Join(canonicalRoot, "usr/libexec/sluice/sluice-agent"),
+		YonBinary:        filepath.Join(canonicalRoot, "usr/libexec/sluice/sluice-yon"),
+		TachyonBinary:    filepath.Join(canonicalRoot, "usr/lib/sluice/runtime/bin/ty"),
+		FyloBinary:       filepath.Join(canonicalRoot, "usr/lib/sluice/runtime/bin/fylo"),
+		TachyonProject:   filepath.Join(canonicalRoot, "usr/share/sluice/tachyon"),
+		HealthRoute:      filepath.Join(canonicalRoot, "usr/share/sluice/tachyon/server/routes/v1/health/yon.sluice"),
+		DesktopEntry:     filepath.Join(canonicalRoot, "sluice.desktop"),
+		LicenseDirectory: filepath.Join(canonicalRoot, "usr/share/doc/sluice/licenses"),
+	}
+	if bundle != want {
+		t.Fatalf("bundle = %#v, want %#v", bundle, want)
+	}
+}
+
+func TestOpenLinuxBundleRejectsDevelopmentAndIncompleteLayouts(t *testing.T) {
+	if _, err := runtimeexec.OpenLinuxBundle(filepath.Join(t.TempDir(), "AppRun")); !errors.Is(err, runtimeexec.ErrNotPackaged) {
+		t.Fatalf("development path error = %v, want ErrNotPackaged", err)
+	}
+
+	root := filepath.Join(t.TempDir(), "Sluice.AppDir")
+	writeBundleFixture(t, root, "AppRun", 0o755)
+	if _, err := runtimeexec.OpenLinuxBundle(filepath.Join(root, "AppRun")); err == nil || errors.Is(err, runtimeexec.ErrNotPackaged) {
+		t.Fatalf("incomplete bundle error = %v, want packaged-layout failure", err)
+	}
+}
+
 func writeBundleFixture(t *testing.T, root, relative string, mode os.FileMode) {
 	t.Helper()
 	path := filepath.Join(root, filepath.FromSlash(relative))

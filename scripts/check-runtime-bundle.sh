@@ -90,9 +90,6 @@ ruby -rjson -rdigest -rpathname -ruri -e '
     fail_contract("#{target["id"]} OS/architecture mismatch") unless target["os"] == expected_os && target["arch"] == expected_arch
     allowed_qualifications = %w[native-staging-pending native-staging-passed not-native-tested]
     fail_contract("#{target["id"]} has unknown qualification") unless allowed_qualifications.include?(target["qualification"])
-    if target["id"] != "macos-arm64" && target["qualification"] != "not-native-tested"
-      fail_contract("#{target["id"]} has no native staging evidence")
-    end
     if target["qualification"] == "native-staging-passed"
       safe_relative_path(target["evidence"], "#{target["id"]} evidence")
       fail_contract("#{target["id"]} evidence must be a runtime qualification record") unless target["evidence"].start_with?("docs/qualification/runtime/")

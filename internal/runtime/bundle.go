@@ -7,14 +7,14 @@ import (
 	"path/filepath"
 )
 
-// ErrNotPackaged means an executable is not running from the supported macOS
-// application-bundle location. Development binaries use this signal to avoid
-// starting production helpers accidentally.
-var ErrNotPackaged = errors.New("Sluice is not running from a macOS application bundle") //nolint:staticcheck // Product name begins the sentinel message.
+// ErrNotPackaged means an executable is not running from a supported native
+// package location. Development binaries use this signal to avoid starting
+// production helpers accidentally.
+var ErrNotPackaged = errors.New("Sluice is not running from a native application package") //nolint:staticcheck // Product name begins the sentinel message.
 
-// MacOSBundle contains absolute paths derived from the desktop executable's
+// Bundle contains absolute paths derived from the desktop executable's
 // location. No PATH lookup or current-working-directory assumption is used.
-type MacOSBundle struct {
+type Bundle struct {
 	Root             string
 	DesktopBinary    string
 	AgentBinary      string
@@ -24,25 +24,51 @@ type MacOSBundle struct {
 	TachyonProject   string
 	HealthRoute      string
 	InfoPlist        string
+	DesktopEntry     string
 	LicenseDirectory string
 }
 
+// MacOSBundle is retained as a source-compatible name for the original native
+// package contract. Lifecycle code uses Bundle because Linux AppDir packages
+// have the same runtime boundary.
+type MacOSBundle = Bundle
+
 // OpenMacOSBundle resolves and validates the relocatable Sluice.app payload.
-func OpenMacOSBundle(desktopExecutable string) (MacOSBundle, error) {
+func OpenMacOSBundle(desktopExecutable string) (Bundle, error) {
 	if _, ok := macOSBundleRoot(filepath.Clean(desktopExecutable)); !ok {
-		return MacOSBundle{}, ErrNotPackaged
+		return Bundle{}, ErrNotPackaged
 	}
 	desktop, err := OpenExecutable(desktopExecutable)
 	if err != nil {
-		return MacOSBundle{}, fmt.Errorf("open Sluice desktop executable: %w", err)
+		return Bundle{}, fmt.Errorf("open Sluice desktop executable: %w", err)
 	}
 	root, ok := macOSBundleRoot(desktop.Path())
 	if !ok {
-		return MacOSBundle{}, ErrNotPackaged
+		return Bundle{}, ErrNotPackaged
 	}
 	bundle := macOSBundlePaths(root)
-	if err := validateMacOSBundle(bundle); err != nil {
-		return MacOSBundle{}, err
+	if err := validateBundle(bundle, "Info.plist", bundle.InfoPlist); err != nil {
+		return Bundle{}, err
+	}
+	return bundle, nil
+}
+
+// OpenLinuxBundle resolves and validates a relocatable Sluice.AppDir payload.
+func OpenLinuxBundle(desktopExecutable string) (Bundle, error) {
+	if _, ok := linuxBundleRoot(filepath.Clean(desktopExecutable)); !ok {
+		return Bundle{}, ErrNotPackaged
+	}
+	desktop, err := OpenExecutable(desktopExecutable)
+	if err != nil {
+		return Bundle{}, fmt.Errorf("open Sluice desktop executable: %w", err)
+	}
+	root, ok := linuxBundleRoot(desktop.Path())
+	if !ok {
+		return Bundle{}, ErrNotPackaged
+	}
+	bundle := linuxBundlePaths(root)
+	if err := validateBundle(bundle, "desktop entry", bundle.DesktopEntry); err != nil {
+		return Bundle{}, err
 	}
 	return bundle, nil
 }
@@ -60,11 +86,11 @@ func macOSBundleRoot(desktop string) (string, bool) {
 	return root, true
 }
 
-func macOSBundlePaths(root string) MacOSBundle {
+func macOSBundlePaths(root string) Bundle {
 	contents := filepath.Join(root, "Contents")
 	resources := filepath.Join(contents, "Resources")
 	project := filepath.Join(resources, "tachyon")
-	return MacOSBundle{
+	return Bundle{
 		Root:             root,
 		DesktopBinary:    filepath.Join(contents, "MacOS", "sluice-desktop"),
 		AgentBinary:      filepath.Join(contents, "Helpers", "sluice-agent"),
@@ -78,7 +104,32 @@ func macOSBundlePaths(root string) MacOSBundle {
 	}
 }
 
-func validateMacOSBundle(bundle MacOSBundle) error {
+func linuxBundleRoot(desktop string) (string, bool) {
+	root := filepath.Dir(desktop)
+	if filepath.Base(desktop) != "AppRun" || filepath.Base(root) != "Sluice.AppDir" {
+		return "", false
+	}
+	return root, true
+}
+
+func linuxBundlePaths(root string) Bundle {
+	resources := filepath.Join(root, "usr", "share", "sluice")
+	project := filepath.Join(resources, "tachyon")
+	return Bundle{
+		Root:             root,
+		DesktopBinary:    filepath.Join(root, "AppRun"),
+		AgentBinary:      filepath.Join(root, "usr", "libexec", "sluice", "sluice-agent"),
+		YonBinary:        filepath.Join(root, "usr", "libexec", "sluice", "sluice-yon"),
+		TachyonBinary:    filepath.Join(root, "usr", "lib", "sluice", "runtime", "bin", "ty"),
+		FyloBinary:       filepath.Join(root, "usr", "lib", "sluice", "runtime", "bin", "fylo"),
+		TachyonProject:   project,
+		HealthRoute:      filepath.Join(project, "server", "routes", "v1", "health", "yon.sluice"),
+		DesktopEntry:     filepath.Join(root, "sluice.desktop"),
+		LicenseDirectory: filepath.Join(root, "usr", "share", "doc", "sluice", "licenses"),
+	}
+}
+
+func validateBundle(bundle Bundle, metadataName, metadataPath string) error {
 	programs := []struct {
 		name string
 		path string
@@ -109,7 +160,7 @@ func validateMacOSBundle(bundle MacOSBundle) error {
 		path string
 	}{
 		{name: "health route", path: bundle.HealthRoute},
-		{name: "Info.plist", path: bundle.InfoPlist},
+		{name: metadataName, path: metadataPath},
 	} {
 		if err := requireRegularFile(file.path); err != nil {
 			return fmt.Errorf("open bundled %s: %w", file.name, err)

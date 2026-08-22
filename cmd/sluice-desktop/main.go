@@ -224,7 +224,7 @@ func startCoordinator(ctx context.Context, coordinator *lifecycle.Coordinator) (
 }
 
 func openPackagedCoordinator(options desktopOptions) (*lifecycle.Coordinator, bool, error) {
-	coordinator, err := lifecycle.NewMacOSPackaged(
+	coordinator, err := lifecycle.NewPackaged(
 		options.executable,
 		options.stateRoot,
 		packagedRuntimeVersion,

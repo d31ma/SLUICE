@@ -4,8 +4,10 @@ set -eu
 repo_root=$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd)
 plist="$repo_root/packaging/macos/Info.plist"
 route="$repo_root/packaging/tachyon/server/routes/v1/health/yon.sluice"
+desktop_entry="$repo_root/packaging/linux/sluice.desktop"
 
 test -f "$plist"
+test -f "$desktop_entry"
 test -f "$route"
 test -s "$route"
 
@@ -34,3 +36,21 @@ ruby -rrexml/document -e '
   end
   puts "app bundle contract: Info.plist and Tachyon health route passed"
 ' "$plist"
+
+ruby -e '
+  entries = File.readlines(ARGV.fetch(0), chomp: true).filter_map do |line|
+    next if line.empty? || line.start_with?("[")
+    key, value = line.split("=", 2)
+    [key, value]
+  end.to_h
+  expected = {
+    "Type" => "Application",
+    "Name" => "Sluice",
+    "Exec" => "AppRun",
+    "Terminal" => "false"
+  }
+  expected.each do |key, value|
+    abort "app bundle contract: Linux #{key} mismatch" unless entries[key] == value
+  end
+  puts "app bundle contract: Linux desktop entry passed"
+' "$desktop_entry"

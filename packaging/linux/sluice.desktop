@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Sluice
+Comment=Sync local files with S3-compatible storage
+Exec=AppRun
+Icon=folder
+Terminal=false
+Categories=Utility;
+StartupNotify=true
+X-GNOME-Autostart-enabled=true
