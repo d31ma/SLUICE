@@ -102,7 +102,7 @@ func (process *childProcess) awaitExit(ctx context.Context) error {
 }
 
 func childExitError(err error) error {
-	if err == nil {
+	if err == nil || runtimeexec.IsExpectedInterruptExit(err) {
 		return nil
 	}
 	return fmt.Errorf("Sluice agent exited unsuccessfully: %w", err) //nolint:staticcheck // Product name begins the operator-facing diagnostic.

@@ -5,6 +5,7 @@ import (
 	"os/exec"
 	"os/signal"
 	"path/filepath"
+	"runtime"
 	"testing"
 	"time"
 
@@ -39,7 +40,7 @@ func TestInterruptProcessStopsConfiguredChildCleanly(t *testing.T) {
 	select {
 	case err := <-done:
 		completed = true
-		if err != nil {
+		if err != nil && !runtimeexec.IsExpectedInterruptExit(err) {
 			t.Fatalf("Wait() error = %v", err)
 		}
 	case <-time.After(10 * time.Second):
@@ -57,6 +58,9 @@ func TestInterruptProcessChild(t *testing.T) {
 	defer signal.Stop(interrupt)
 	if err := os.WriteFile(ready, []byte("ready"), 0o600); err != nil { //nolint:gosec // Parent supplies a test-owned temporary path to this exact child.
 		t.Fatalf("WriteFile(ready) error = %v", err)
+	}
+	if runtime.GOOS == "windows" {
+		select {}
 	}
 	select {
 	case <-interrupt:

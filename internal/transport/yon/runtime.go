@@ -244,7 +244,7 @@ func (server *Server) stop(ctx context.Context) error {
 }
 
 func tachyonExitError(err error) error {
-	if err == nil {
+	if err == nil || runtimeexec.IsExpectedInterruptExit(err) {
 		return nil
 	}
 	return fmt.Errorf("tachyon exited unsuccessfully: %w", err)

@@ -397,7 +397,7 @@ func cleanupInterruptedWindowsFile(parent windows.Handle, name string) error {
 		windows.FILE_NON_DIRECTORY_FILE|windows.FILE_SYNCHRONOUS_IO_NONALERT|windows.FILE_OPEN_REPARSE_POINT,
 		0,
 	)
-	if isWindowsNotFound(err) || isWindowsSharingViolation(err) {
+	if isUnavailableWindowsTemporary(err) {
 		return nil
 	}
 	if err != nil {
@@ -424,6 +424,10 @@ func cleanupInterruptedWindowsFile(parent windows.Handle, name string) error {
 		return failure(CodeIO, err)
 	}
 	return nil
+}
+
+func isUnavailableWindowsTemporary(err error) bool {
+	return isWindowsNotFound(err) || isWindowsSharingViolation(err)
 }
 
 func openMarkedWindowsTemporary(

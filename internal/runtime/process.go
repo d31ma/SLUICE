@@ -15,3 +15,9 @@ func ConfigureInterruptibleProcess(command *exec.Cmd) {
 func InterruptProcess(process *os.Process) error {
 	return interruptProcess(process)
 }
+
+// IsExpectedInterruptExit reports whether err is the platform's normal wait
+// result when a configured process accepts InterruptProcess.
+func IsExpectedInterruptExit(err error) bool {
+	return isExpectedInterruptExit(err)
+}

@@ -323,6 +323,9 @@ func (process *qualificationProcess) Close(ctx context.Context) error {
 			<-process.done
 			process.err = ctx.Err()
 		}
+		if runtimeexec.IsExpectedInterruptExit(process.err) {
+			process.err = nil
+		}
 	})
 	return process.err
 }
