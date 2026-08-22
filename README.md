@@ -106,6 +106,11 @@ make build
 make linux-qualify-arm64
 ```
 
+Bootstrap downloads the pinned Go modules plus the checksum-locked Tachyon and
+Fylo tools for the current supported host into the ignored `tools/bin`
+directory. The complete quality gate uses those native runtimes for executable
+contract coverage.
+
 The authoritative Phase 1 evidence and remaining gates are in
 [the qualification matrix](docs/qualification/README.md). Cross-compilation
 and unsigned staging are deliberately not presented as support claims.

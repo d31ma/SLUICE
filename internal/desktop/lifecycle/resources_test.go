@@ -4,6 +4,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 )
 
@@ -31,6 +32,11 @@ func TestGenerationResourcesPreserveAReplacementDescriptor(t *testing.T) {
 	replacement := filepath.Join(directory, "replacement")
 	if err := os.WriteFile(replacement, []byte("new"), 0o600); err != nil {
 		t.Fatalf("write replacement descriptor: %v", err)
+	}
+	if runtime.GOOS == "windows" {
+		if err := os.Remove(path); err != nil {
+			t.Fatalf("remove old descriptor before Windows publication: %v", err)
+		}
 	}
 	if err := os.Rename(replacement, path); err != nil {
 		t.Fatalf("replace descriptor: %v", err)

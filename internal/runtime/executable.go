@@ -30,7 +30,7 @@ func OpenExecutable(path string) (Executable, error) {
 	if path == "" || strings.ContainsRune(path, '\x00') || !filepath.IsAbs(path) {
 		return Executable{}, fmt.Errorf("runtime executable path must be absolute")
 	}
-	clean, err := filepath.EvalSymlinks(filepath.Clean(path))
+	clean, err := canonicalExecutablePath(path)
 	if err != nil {
 		return Executable{}, fmt.Errorf("resolve runtime executable %q: %w", path, err)
 	}

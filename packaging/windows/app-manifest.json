@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "applicationId": "ma.del.sluice.desktop",
+  "name": "Sluice",
+  "entrypoint": "sluice-desktop.exe",
+  "architecture": "amd64",
+  "runtimeVersion": "26.33.02"
+}

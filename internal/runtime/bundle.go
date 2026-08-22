@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 // ErrNotPackaged means an executable is not running from a supported native
@@ -25,6 +26,7 @@ type Bundle struct {
 	HealthRoute      string
 	InfoPlist        string
 	DesktopEntry     string
+	PackageManifest  string
 	LicenseDirectory string
 }
 
@@ -68,6 +70,26 @@ func OpenLinuxBundle(desktopExecutable string) (Bundle, error) {
 	}
 	bundle := linuxBundlePaths(root)
 	if err := validateBundle(bundle, "desktop entry", bundle.DesktopEntry); err != nil {
+		return Bundle{}, err
+	}
+	return bundle, nil
+}
+
+// OpenWindowsBundle resolves and validates a relocatable Sluice directory.
+func OpenWindowsBundle(desktopExecutable string) (Bundle, error) {
+	if _, ok := windowsBundleRoot(filepath.Clean(desktopExecutable)); !ok {
+		return Bundle{}, ErrNotPackaged
+	}
+	desktop, err := OpenExecutable(desktopExecutable)
+	if err != nil {
+		return Bundle{}, fmt.Errorf("open Sluice desktop executable: %w", err)
+	}
+	root, ok := windowsBundleRoot(desktop.Path())
+	if !ok {
+		return Bundle{}, ErrNotPackaged
+	}
+	bundle := windowsBundlePaths(root)
+	if err := validateBundle(bundle, "package manifest", bundle.PackageManifest); err != nil {
 		return Bundle{}, err
 	}
 	return bundle, nil
@@ -126,6 +148,32 @@ func linuxBundlePaths(root string) Bundle {
 		HealthRoute:      filepath.Join(project, "server", "routes", "v1", "health", "yon.sluice"),
 		DesktopEntry:     filepath.Join(root, "sluice.desktop"),
 		LicenseDirectory: filepath.Join(root, "usr", "share", "doc", "sluice", "licenses"),
+	}
+}
+
+func windowsBundleRoot(desktop string) (string, bool) {
+	root := filepath.Dir(desktop)
+	if !strings.EqualFold(filepath.Base(desktop), "sluice-desktop.exe") ||
+		!strings.EqualFold(filepath.Base(root), "Sluice") {
+		return "", false
+	}
+	return root, true
+}
+
+func windowsBundlePaths(root string) Bundle {
+	resources := filepath.Join(root, "resources")
+	project := filepath.Join(resources, "tachyon")
+	return Bundle{
+		Root:             root,
+		DesktopBinary:    filepath.Join(root, "sluice-desktop.exe"),
+		AgentBinary:      filepath.Join(root, "libexec", "sluice-agent.exe"),
+		YonBinary:        filepath.Join(root, "libexec", "sluice-yon.exe"),
+		TachyonBinary:    filepath.Join(root, "runtime", "bin", "ty.exe"),
+		FyloBinary:       filepath.Join(root, "runtime", "bin", "fylo.exe"),
+		TachyonProject:   project,
+		HealthRoute:      filepath.Join(project, "server", "routes", "v1", "health", "yon.sluice"),
+		PackageManifest:  filepath.Join(root, "app-manifest.json"),
+		LicenseDirectory: filepath.Join(root, "licenses"),
 	}
 }
 

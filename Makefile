@@ -3,24 +3,28 @@ ACTIVE_GO := $(shell $(GO) env GOROOT)/bin/go
 
 .DEFAULT_GOAL := help
 
-.PHONY: help bootstrap fmt fmt-check vet lint test test-race crap vuln licenses docs workflows runtime-contract app-bundle-contract runtime-stage-macos app-package-macos app-runtime-qualify-macos filesystem-qualify-macos linux-qualify-arm64 build check
+.PHONY: help bootstrap runtime-tools fmt fmt-check vet lint test test-race crap vuln licenses docs workflows runtime-contract app-bundle-contract runtime-stage-macos app-package-macos app-package-windows app-runtime-qualify-macos filesystem-qualify-macos linux-qualify-arm64 build check
 
 help:
 	@echo "Sluice development commands"
-	@echo "  make bootstrap  download the pinned Go toolchain and modules"
+	@echo "  make bootstrap  download pinned Go modules and native runtime tools"
 	@echo "  make fmt        format Go source"
 	@echo "  make check      run the complete local quality gate"
 	@echo "  make runtime-contract  validate pinned runtime bundle metadata"
 	@echo "  make workflows  validate immutable GitHub Actions references"
 	@echo "  make runtime-stage-macos  stage and execute the macOS arm64 runtime payload"
 	@echo "  make app-package-macos  stage and exercise an unsigned native macOS arm64 Sluice.app"
+	@echo "  make app-package-windows  stage and exercise a native Windows amd64 portable package"
 	@echo "  make app-runtime-qualify-macos  record a ten-minute native packaged-process baseline"
 	@echo "  make filesystem-qualify-macos  run native arm64 APFS destructive fixtures in an isolated image"
 	@echo "  make linux-qualify-arm64  run native Linux arm64 runtime, IPC, filesystem, and AppDir qualification"
 	@echo "  make build      build all Go packages"
 
-bootstrap:
+bootstrap: runtime-tools
 	$(GO) mod download
+
+runtime-tools:
+	./scripts/bootstrap-runtime-tools.sh
 
 fmt:
 	$(GO) tool gofumpt -w .
@@ -41,8 +45,8 @@ test:
 test-race:
 	$(GO) test -race -count=1 ./...
 
-crap:
-	$(GO) tool go-crap scan ./... --fail-above --threshold 15 --min 15 --missing pessimistic --no-progress
+crap: runtime-tools
+	PATH="$(CURDIR)/tools/bin:$$PATH" SLUICE_REQUIRE_INSTALLED_RUNTIMES=1 $(GO) tool go-crap scan ./... --fail-above --threshold 15 --min 15 --missing pessimistic --no-progress
 
 vuln:
 	$(GO) tool govulncheck ./...
@@ -67,6 +71,9 @@ runtime-stage-macos:
 
 app-package-macos:
 	./scripts/test-app-bundle-macos.sh
+
+app-package-windows:
+	pwsh -NoLogo -NoProfile -File ./scripts/test-app-bundle-windows.ps1
 
 app-runtime-qualify-macos:
 	./scripts/qualify-app-runtime-macos.sh

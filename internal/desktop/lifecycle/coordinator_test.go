@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -153,7 +154,7 @@ func TestLoadOrCreateTokenIsStablePrivateAndRejectsSymlinks(t *testing.T) {
 	if err != nil {
 		t.Fatalf("stat token: %v", err)
 	}
-	if metadata.Mode().Perm() != 0o600 {
+	if runtime.GOOS != "windows" && metadata.Mode().Perm() != 0o600 {
 		t.Fatalf("token mode = %o, want 600", metadata.Mode().Perm())
 	}
 
@@ -163,7 +164,7 @@ func TestLoadOrCreateTokenIsStablePrivateAndRejectsSymlinks(t *testing.T) {
 	}
 	link := filepath.Join(t.TempDir(), "token-link")
 	if err := os.Symlink(target, link); err != nil {
-		t.Fatalf("create token symlink: %v", err)
+		t.Skipf("symlink unavailable: %v", err)
 	}
 	if _, err := loadOrCreateToken(link); err == nil {
 		t.Fatal("loadOrCreateToken() accepted a symlink")

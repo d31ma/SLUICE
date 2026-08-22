@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"runtime"
 
 	runtimeexec "github.com/d31ma/sluice/internal/runtime"
 )
@@ -13,14 +12,25 @@ import (
 // system. Unsupported targets and ordinary development binaries return
 // runtimeexec.ErrNotPackaged.
 func NewPackaged(executable, stateRoot, runtimeVersion string) (*Coordinator, error) {
-	switch runtime.GOOS {
-	case "darwin":
-		return NewMacOSPackaged(executable, stateRoot, runtimeVersion)
-	case "linux":
-		return NewLinuxPackaged(executable, stateRoot, runtimeVersion)
-	default:
-		return nil, runtimeexec.ErrNotPackaged
+	return newNativePackaged(executable, stateRoot, runtimeVersion)
+}
+
+// NewWindowsPackaged resolves one relocatable Sluice directory and its
+// per-user state. An empty stateRoot selects LocalAppData.
+func NewWindowsPackaged(executable, stateRoot, runtimeVersion string) (*Coordinator, error) {
+	bundle, err := runtimeexec.OpenWindowsBundle(executable)
+	if err != nil {
+		return nil, err
 	}
+	stateRoot, err = resolveWindowsStateRoot(stateRoot)
+	if err != nil {
+		return nil, err
+	}
+	return New(Config{
+		Bundle:         bundle,
+		StateRoot:      stateRoot,
+		RuntimeVersion: runtimeVersion,
+	})
 }
 
 // NewMacOSPackaged resolves one relocatable Sluice.app and its per-user state.
@@ -73,6 +83,13 @@ func resolveLinuxStateRoot(configured string) (string, error) {
 	return DefaultLinuxStateRoot()
 }
 
+func resolveWindowsStateRoot(configured string) (string, error) {
+	if configured != "" {
+		return configured, nil
+	}
+	return DefaultWindowsStateRoot()
+}
+
 // DefaultMacOSStateRoot returns ~/Library/Application Support/Sluice through
 // the operating system rather than constructing a home-relative path.
 func DefaultMacOSStateRoot() (string, error) {
@@ -102,4 +119,17 @@ func DefaultLinuxStateRoot() (string, error) {
 		return "", fmt.Errorf("XDG state data path is not absolute")
 	}
 	return filepath.Join(stateHome, "sluice"), nil
+}
+
+// DefaultWindowsStateRoot returns the per-user LocalAppData location used for
+// durable application state rather than the roaming configuration directory.
+func DefaultWindowsStateRoot() (string, error) {
+	localData, err := os.UserCacheDir()
+	if err != nil {
+		return "", fmt.Errorf("resolve per-user local application data: %w", err)
+	}
+	if !filepath.IsAbs(localData) {
+		return "", fmt.Errorf("per-user local application data path is not absolute")
+	}
+	return filepath.Join(localData, "Sluice"), nil
 }

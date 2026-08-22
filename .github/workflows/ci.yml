@@ -118,27 +118,15 @@ jobs:
             | sha256sum --check
           chmod 0755 "$runtime_dir/ty" "$runtime_dir/fylo"
           echo "$runtime_dir" >> "$GITHUB_PATH"
-      - name: Install pinned Windows amd64 runtimes
+      - name: Stage native Windows amd64 portable package
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          $runtimeDir = Join-Path $env:RUNNER_TEMP 'sluice-runtime'
-          New-Item -ItemType Directory -Force -Path $runtimeDir | Out-Null
-          $ty = Join-Path $runtimeDir 'ty.exe'
-          $fylo = Join-Path $runtimeDir 'fylo.exe'
-          Invoke-WebRequest -Uri 'https://github.com/d31ma/Tachyon/releases/download/v26.33.02/ty-windows-x64.exe' -OutFile $ty
-          Invoke-WebRequest -Uri 'https://github.com/d31ma/FYLO/releases/download/v26.33.02/fylo-windows-x64.exe' -OutFile $fylo
-          $expected = @{
-            $ty = '00198a58534faff29f2373a2649c58f176e3305aa77242f59cee6530c7c371d5'
-            $fylo = 'd57a612d5abb770bc3e228a08b6a628341364b19fe8c62a6418bbb178ef41f34'
-          }
-          foreach ($path in $expected.Keys) {
-            $actual = (Get-FileHash -Algorithm SHA256 -Path $path).Hash.ToLowerInvariant()
-            if ($actual -ne $expected[$path]) {
-              throw "checksum mismatch for $path"
-            }
-          }
+          $stageRoot = Join-Path $env:RUNNER_TEMP 'sluice-windows-package'
+          & ./scripts/stage-app-bundle-windows.ps1 -StageRoot $stageRoot
+          "SLUICE_WINDOWS_STAGE=$stageRoot" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          $runtimeDir = Join-Path $stageRoot 'Sluice/runtime/bin'
           $runtimeDir | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
       - name: Record native runner
         shell: bash
@@ -151,3 +139,9 @@ jobs:
           ./internal/runtime ./internal/state/fylo ./internal/transport/ipc
           ./internal/agent ./internal/transport/localapi ./internal/transport/yon
           ./cmd/sluice-agent
+      - name: Exercise native Windows package topology twice
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: >-
+          ./scripts/test-app-bundle-windows.ps1
+          -StagedRoot $env:SLUICE_WINDOWS_STAGE
