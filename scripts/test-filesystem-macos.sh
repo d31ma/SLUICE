@@ -41,7 +41,7 @@ SLUICE_FS_ENOSPC_ROOT="$mount_path" \
 SLUICE_FS_REQUIRE_APFS_COLLISIONS=1 \
 SLUICE_FS_REQUIRE_RENAME_BOUNDARY=1 \
   "$test_binary" \
-    -test.run '^TestAtomicInstaller(CleansUpAfterAPFSENOSPC|FailsClosedOnAPFSCollisions|RecoversAfterPreRenameTermination)$' \
+    -test.run '^TestAtomicInstaller(CleansUpAfterRealENOSPC|FailsClosedOnAPFSCollisions|RecoversAfterPreRenameTermination)$' \
     -test.count=1 \
     -test.v
 

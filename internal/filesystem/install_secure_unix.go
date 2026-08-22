@@ -1,4 +1,4 @@
-//go:build darwin
+//go:build darwin || linux
 
 package filesystem
 
@@ -14,16 +14,9 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-const (
-	temporaryRandomBytes = 12
-	temporaryXattr       = "com.delma.sluice.install-temporary"
-)
+const temporaryRandomBytes = 12
 
 var temporaryXattrValue = []byte("v1")
-
-func isUnsupportedAtomicRename(err error) bool {
-	return errors.Is(err, syscall.ENOSYS) || errors.Is(err, syscall.ENOTSUP)
-}
 
 type secureParent struct {
 	components []string
@@ -257,7 +250,7 @@ func removeMarkedTemporaryAt(parentFD int, fd int, name string) error {
 func isMarkedTemporary(fd int) (bool, error) {
 	value := make([]byte, len(temporaryXattrValue))
 	size, err := unix.Fgetxattr(fd, temporaryXattr, value)
-	if errors.Is(err, unix.ENOATTR) {
+	if isMissingTemporaryXattr(err) {
 		return false, nil
 	}
 	if err != nil {
@@ -336,7 +329,7 @@ func (installer *AtomicInstaller) commitSecureTemporary(
 	if err := requireAbsentDestinationAt(parent.parentFD, destination); err != nil {
 		return err
 	}
-	if err := unix.RenameatxNp(parent.parentFD, temporaryName, parent.parentFD, destination, unix.RENAME_EXCL); err != nil {
+	if err := renameSecureNoReplace(parent.parentFD, temporaryName, destination); err != nil {
 		return classifyRenameError(err)
 	}
 	if err := unix.Fremovexattr(int(temporary.Fd()), temporaryXattr); err != nil {

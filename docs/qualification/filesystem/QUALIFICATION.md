@@ -77,7 +77,7 @@ make filesystem-qualify-macos
 PASS
 ok github.com/d31ma/sluice/internal/filesystem (ordinary native arm64 suite)
 ok github.com/d31ma/sluice/internal/filesystem (race-enabled native arm64 suite)
-PASS TestAtomicInstallerCleansUpAfterAPFSENOSPC
+PASS TestAtomicInstallerCleansUpAfterRealENOSPC
 PASS TestAtomicInstallerFailsClosedOnAPFSCollisions/case
 PASS TestAtomicInstallerFailsClosedOnAPFSCollisions/normalization
 PASS TestAtomicInstallerRecoversAfterPreRenameTermination

@@ -16,6 +16,7 @@ fi
 docker run --rm --platform linux/arm64 \
   --mount type=bind,src="$repository_root",dst=/source,readonly \
   --mount type=volume,dst=/qualification,volume-nocopy \
+  --tmpfs /qualification-tmpfs:rw,exec,size=67108864,mode=1777 \
   "$image" sh -c '
     set -eu
     export DEBIAN_FRONTEND=noninteractive
@@ -29,6 +30,7 @@ docker run --rm --platform linux/arm64 \
     test "$(uname -s)" = Linux
     test "$(uname -m)" = aarch64
     test "$(stat -f -c %T /qualification)" = ext2/ext3
+    test "$(stat -f -c %T /qualification-tmpfs)" = tmpfs
 
     useradd --create-home --uid 10001 qualifier
     cp -a --no-preserve=ownership /source/. /qualification/sluice
@@ -58,6 +60,14 @@ docker run --rm --platform linux/arm64 \
           ./internal/agent ./internal/transport/localapi ./internal/transport/yon \
           ./cmd/sluice-agent
         go test -race -count=1 ./internal/filesystem ./internal/platform/autostart
+        TMPDIR=/qualification-tmpfs go test -race -count=1 ./internal/filesystem
+        go test -c -o /qualification/filesystem.test ./internal/filesystem
+        SLUICE_FS_ENOSPC_ROOT=/qualification-tmpfs \
+        SLUICE_FS_REQUIRE_RENAME_BOUNDARY=1 \
+          /qualification/filesystem.test \
+            -test.run \"^TestAtomicInstaller(CleansUpAfterRealENOSPC|RecoversAfterPreRenameTermination)\$\" \
+            -test.count=1 \
+            -test.v
         scripts/test-app-bundle-linux-arm64.sh
       "
   '

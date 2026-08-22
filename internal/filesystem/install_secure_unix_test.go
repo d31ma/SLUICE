@@ -1,4 +1,4 @@
-//go:build darwin
+//go:build darwin || linux
 
 package filesystem_test
 
@@ -223,25 +223,25 @@ func TestAtomicInstallerWriteLimitChild(t *testing.T) {
 	os.Exit(0) // The isolated child must exit before its deliberately tiny file limit blocks coverage metadata.
 }
 
-func TestAtomicInstallerCleansUpAfterAPFSENOSPC(t *testing.T) {
+func TestAtomicInstallerCleansUpAfterRealENOSPC(t *testing.T) {
 	volumeRoot := os.Getenv(enospcRoot)
 	if volumeRoot == "" {
 		return
 	}
 	rootPath, err := os.MkdirTemp(volumeRoot, ".sluice-enospc-")
 	if err != nil {
-		t.Fatalf("MkdirTemp(APFS volume) error = %v", err)
+		t.Fatalf("MkdirTemp(qualification volume) error = %v", err)
 	}
 	t.Cleanup(func() { _ = os.RemoveAll(rootPath) }) //nolint:gosec // Child directory of the explicitly isolated qualification volume.
 
 	reserve := filepath.Join(rootPath, "space-reserve")
 	writeRandomFile(t, reserve, 8*1024*1024)
-	fillAPFSVolume(t, filepath.Join(rootPath, "filler"))
+	fillVolume(t, filepath.Join(rootPath, "filler"))
 	if removeErr := os.Remove(reserve); removeErr != nil { //nolint:gosec // Test-owned path beneath the isolated qualification volume.
 		t.Fatalf("Remove(space reserve) error = %v", removeErr)
 	}
-	if syncErr := unix.Sync(); syncErr != nil {
-		t.Fatalf("Sync(APFS volume) error = %v", syncErr)
+	if syncErr := syncFilesystem(); syncErr != nil {
+		t.Fatalf("Sync(qualification volume) error = %v", syncErr)
 	}
 
 	content := randomBytes(t, 16*1024*1024)
@@ -367,7 +367,7 @@ func waitForFullTemporary(t *testing.T, rootPath string, size int64) {
 	t.Fatal("timed out before the temporary reached the pre-rename boundary")
 }
 
-func fillAPFSVolume(t *testing.T, path string) {
+func fillVolume(t *testing.T, path string) {
 	t.Helper()
 	file, err := os.OpenFile(path, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o600) //nolint:gosec // Test-owned isolated image.
 	if err != nil {
@@ -382,7 +382,7 @@ func fillAPFSVolume(t *testing.T, path string) {
 			t.Fatalf("Write(filler) error = %v, want ENOSPC", err)
 		}
 	}
-	t.Fatal("isolated APFS volume accepted 256 MiB without ENOSPC")
+	t.Fatal("isolated volume accepted 256 MiB without ENOSPC")
 }
 
 func writeRandomFile(t *testing.T, path string, size int) {
