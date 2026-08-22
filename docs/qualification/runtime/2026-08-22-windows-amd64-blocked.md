@@ -12,8 +12,8 @@ qualification therefore remain unpromoted.
 
 | Item | Value |
 | --- | --- |
-| CI run | [32548613814](https://github.com/d31ma/sluice/actions/runs/32548613814), job `96971534884` (`Installed runtimes windows-latest`) |
-| Sluice source | `0760adf1b362e04cd52f25d2c781217210734148` |
+| CI run | [32558865448](https://github.com/d31ma/sluice/actions/runs/32558865448), job `96997210746` (`Installed runtimes windows-latest`) |
+| Sluice source | `03e0ca2efb5a2407343dde55c61b0c83370181a8` |
 | Host | Microsoft Windows Server 2025 Datacenter 10.0.26100, native amd64 |
 | Runner image | `windows-2025-vs2026` version `20260818.207.1` |
 | Go toolchain | Go 1.27.0, `windows/amd64` |
@@ -25,7 +25,9 @@ qualification therefore remain unpromoted.
 
 The native staging step downloaded the versioned artifacts, verified both
 digests and executable identities, copied the pinned notices, and produced the
-declared `Sluice/runtime/bin` portable layout. The installed-runtime command
+declared `Sluice/runtime/bin` portable layout. The desktop executable was
+compiled natively with Fyne's opt-in accessibility bridge, so the packaging
+change reached the independent runtime gate. The installed-runtime command
 then passed `github.com/d31ma/sluice/internal/runtime`, including real Tachyon
 startup, Yon execution, graceful Windows control-event shutdown, and restart.
 The ordinary native Windows race suite, Windows filesystem gate, CRAP ceiling,

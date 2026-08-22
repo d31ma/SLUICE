@@ -2,7 +2,7 @@
 
 Status: gate open
 
-Evidence date: 2026-08-21
+Evidence date: 2026-08-22
 
 This page is the authoritative roll-up for the feasibility gate in
 `docs/PROJECT_PLAN.md`. A passing unit test or cross-build is not promoted to
@@ -11,7 +11,7 @@ still required before Phase 2 may begin.
 
 | Spike or deliverable | Evidence | Result | Gate still required |
 | --- | --- | --- | --- |
-| Fyne desktop lifecycle and autostart | Native macOS arm64 maintained `Sluice.app`; native Linux arm64 and amd64 headless AppDir lifecycle; authenticated health and coordinated shutdown | Partial | Native Windows; real graphical Linux amd64; visual tray/notification, real-login launch, and accessibility on every claimed desktop target |
+| Fyne desktop lifecycle and autostart | Native macOS arm64 maintained `Sluice.app`, visual window and tray-icon observation, and accessibility-enabled package; native Linux arm64 and amd64 headless AppDir lifecycle; authenticated health and coordinated shutdown | Partial | Native Windows; real graphical Linux amd64; tray-menu/notification, real-login launch, VoiceOver or screen-reader, and keyboard access on every claimed desktop target |
 | Yon route to persistent agent | Real `ty -> sluice-yon -> sluice-agent -> fylo` path over private Unix sockets on macOS arm64/amd64 and Linux arm64/amd64; durable replay, auth, bounds, saturation, and shutdown regressions | Partial | Native Windows named-pipe/full-chain execution |
 | Fylo lifecycle and ownership | Native macOS arm64/amd64 and Linux arm64/amd64 version/capability handshake, exclusive-root contention, collection writes, durable idempotency, queue recovery, close/reopen; macOS packaged supervisor recovery; ADR 0008 focused supervisor | Partial | Native Windows; Fylo release `26.33.02` currently advertises Windows machine access `0` ([upstream issue 105](https://github.com/d31ma/FYLO/issues/105)) |
 | S3 provider contract | AWS SDK v2 adapter, injected conditional-failure tests, and real versioned MinIO and RustFS qualification; Garage rejected as incompatible | Partial | Authorized AWS S3 qualification |

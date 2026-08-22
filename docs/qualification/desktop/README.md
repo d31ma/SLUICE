@@ -9,7 +9,7 @@ native-tested claim requires the named suite to execute on the target OS.
 
 | Target | Build evidence | Native evidence | Current conclusion |
 | --- | --- | --- | --- |
-| macOS 26.5.2 arm64 | Native arm64 unsigned `Sluice.app` built with private Tachyon and Fylo runtimes | Automated window, tray API, hide/show, notification request, isolated LaunchAgent lifecycle, maintained ten-minute four-process baseline, bounded Tachyon/agent fault recovery, and coordinated shutdown passed on 2026-08-21 | Phase 1 partial; visual tray/notification, real-login launch, and accessibility remain |
+| macOS 26.5.2 arm64 | Native arm64 unsigned `Sluice.app` built with private Tachyon and Fylo runtimes and Fyne's opt-in accessibility bridge | Automated lifecycle plus visual window and tray-icon observation, isolated LaunchAgent lifecycle, maintained ten-minute four-process baseline, bounded Tachyon/agent fault recovery, and coordinated shutdown passed | Phase 1 partial; tray-menu actions, notification delivery, real-login launch, VoiceOver, and keyboard access remain |
 | macOS 15.7.7 amd64 | Native unsigned `Sluice.app` built with private Tachyon and Fylo runtimes | The packaged four-process runtime passed twice on a hosted Intel runner; Fyne was intentionally not initialized because the runner exposed no usable NSGL pixel format | Phase 1 partial; all graphical, tray/notification, real-login, and accessibility evidence remains |
 | Windows amd64 | Native portable package staging plus ordinary/race Go tests; full Fyne binary also cross-built as PE32+ | The portable layout and Windows process/filesystem code run natively; the pinned Fylo artifact blocks the required full runtime chain before desktop startup | Phase 1 partial; full packaged runtime, registry/autostart, graphical lifecycle, tray/notification, real-login, and accessibility remain |
 | Linux arm64 | Native unsigned `Sluice.AppDir` built with pinned private runtimes | Headless Xvfb/D-Bus Fyne lifecycle, XDG autostart tests, authenticated health, two starts, and coordinated shutdown passed; the isolated bus lacked tray and notification services | Phase 1 partial; real graphical desktop tray/notification, real-login launch, and accessibility remain |
@@ -86,7 +86,8 @@ reason to hold the Phase 1 desktop row open.
 
 Platform mechanisms and safety properties are documented in
 `AUTOSTART_CONTRACT.md`. The first macOS execution record is in
-`MACOS-2026-08-21.md`; the packaged topology record is in
+`MACOS-2026-08-21.md`; the interactive follow-up is in
+`2026-08-22-macos-arm64-interactive.md`; the packaged topology record is in
 `../runtime/2026-08-21-macos-arm64-app.md`. The headless Linux arm64 record is
 in `LINUX-2026-08-21.md`. Hosted amd64 package-runtime records are in
 `../runtime/2026-08-22-macos-amd64-hosted.md` and
