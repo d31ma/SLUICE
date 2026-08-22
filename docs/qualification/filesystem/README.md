@@ -55,10 +55,13 @@ segments never reach host path joining.
 1. The destination parent must already exist.
 2. Every existing component from the canonical root to that parent is opened or
    inspected without following links.
-3. On macOS, the installer opens the root and each parent component with
-   `openat`, `O_DIRECTORY`, and `O_NOFOLLOW`, then keeps the resulting directory
-   handles through the commit. Unix symbolic links and Windows reparse points
-   are rejected. A linked destination is rejected as an unsafe link.
+3. On macOS and Linux, the installer opens the root and each parent component
+   with `openat`, `O_DIRECTORY`, and `O_NOFOLLOW`. On Windows it uses
+   root-relative `NtCreateFile` calls with `OBJ_DONT_REPARSE` and
+   `FILE_OPEN_REPARSE_POINT`. Every directory handle remains open through the
+   commit, and Windows handles deny delete sharing so an ancestor cannot be
+   renamed out from under the install. Unix links, Windows reparse points, and
+   linked destinations are rejected.
 4. Content is streamed into an exclusively created sibling temporary file, so
    the temporary file and destination are on the same filesystem.
 5. SHA-256 is calculated while writing and must match `ExpectedSHA256`.
@@ -66,15 +69,20 @@ segments never reach host path joining.
    before installation. A platform may keep its handle open through commit.
 7. Cancellation is checked before mutation, while streaming, and immediately
    before rename. Any handled pre-rename error removes the temporary file.
-8. On macOS, a private extended-attribute marker, per-directory lock, and
-   per-temporary-file lock distinguish Sluice-owned live installs from files
-   orphaned by process termination. The next install in the directory removes
-   only marked, unlocked orphan temporary files before writing. A user file that
-   merely resembles the reserved temporary filename is left untouched.
+8. On macOS and Linux, a private extended-attribute marker, per-directory lock,
+   and per-temporary-file lock distinguish Sluice-owned live installs from
+   files orphaned by process termination. Windows uses a cryptographically
+   named sidecar marker bound to the temporary file's volume and file identity;
+   a live file remains protected by delete-sharing denial. The next install in
+   the directory removes only marked, inactive orphan temporary files before
+   writing. A user file that merely resembles the reserved temporary filename
+   is left untouched.
 9. A native atomic no-replace rename installs the file. Existing destinations
    are never overwritten, including under competing installers.
 10. On POSIX, the destination directory is flushed after rename. On Windows,
-    `MoveFileEx` uses `MOVEFILE_WRITE_THROUGH`.
+    the already-open temporary handle is renamed relative to the held parent
+    handle with `NtSetInformationFile(FileRenameInformation)` and
+    `ReplaceIfExists` disabled, then flushed after commit.
 
 No-replace is intentional. Replacing a cataloged file requires a future
 compare-and-swap contract that proves the expected prior revision; it must not
@@ -95,9 +103,11 @@ logical path with a symlink while installation is in progress. The call fails
 closed, removes the marked temporary file through the original directory
 handle, and writes no bytes through the replacement link.
 
-Windows still uses path-based component checks. Its native concurrent-swap
-gate remains failed until an equivalent handle-based adapter and native
-evidence exist. Cross-compilation does not qualify it.
+The Windows adapter now holds a no-reparse handle for every logical parent and
+denies delete sharing until the handle-relative rename completes. Its native
+gate remains open until the ordinary/race, parent-swap, reparse, interruption,
+permission, and disk-pressure suites execute on NTFS. Cross-compilation does
+not qualify it.
 
 ## Stable failures
 

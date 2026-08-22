@@ -100,16 +100,6 @@ func digestArray(digest hash.Hash) [sha256.Size]byte {
 	return result
 }
 
-func classifyRenameError(err error) error {
-	if errors.Is(err, fs.ErrExist) {
-		return failure(CodeDestinationExists, errorsJoin(ErrDestinationExists, err))
-	}
-	if isUnsupportedAtomicRename(err) {
-		return failure(CodeAtomicRenameUnsupported, errorsJoin(ErrAtomicRenameUnsupported, err))
-	}
-	return failure(CodeIO, err)
-}
-
 type contextReader struct {
 	ctx    context.Context
 	source io.Reader
