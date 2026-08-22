@@ -4,7 +4,7 @@
 
 Production Unix-domain IPC and the real
 `ty -> sluice-yon -> sluice-agent -> fylo` chain passed natively on Linux arm64
-at Sluice revision `83b47eefc634a22534abb0e77e97abd17b829ecf`.
+at Sluice revision `64ae711f9d6ec5b094044ac758ca6858addf92c9`.
 
 `make linux-qualify-arm64` ran the race-enabled IPC, agent, local API, Yon, and
 installed-runtime suites as an unprivileged user. It then started the packaged

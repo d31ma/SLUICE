@@ -14,13 +14,13 @@ notification, and it is not an amd64 or general Linux support claim.
 
 | Item | Evidence |
 | --- | --- |
-| Sluice source | `83b47eefc634a22534abb0e77e97abd17b829ecf` |
+| Sluice source | `64ae711f9d6ec5b094044ac758ca6858addf92c9` |
 | Engine | Docker 29.7.2 server, Linux arm64 |
 | Kernel | LinuxKit 7.0.12, aarch64 |
 | Qualification image | `golang@sha256:6237d172b66951ce3ebfe0156587ad41a9773772c061fb9a5e3d612f5fd22614` |
 | Userspace | Debian Trixie; glibc 2.41 |
 | Go | 1.27.0 linux/arm64 |
-| State volume | Anonymous Docker volume, reported as `ext2/ext3` by `statfs` |
+| Filesystems | Anonymous Docker volume reported as `ext2/ext3`, plus isolated 64 MiB tmpfs |
 | Tachyon | 26.33.02 `ty-linux-arm64`, checksum `2e78dd4b46a300196e64d6563cbf53b77aa4fc407e51834568f7dccc6167e293` |
 | Fylo | 26.33.02 `linux-arm64`, commit `e236162508f6789f980fa7ca136a6671938030cb`, checksum `ec161767b411b6a81d59771f43a094d4da22796c3c71301f2cc2a8f0a4db9d17` |
 
@@ -45,8 +45,10 @@ The following native suites passed with required-runtime skips disabled:
 - production Unix-domain socket permissions, stale/live endpoint handling,
   descriptor capability, bounded admission, and cleanup;
 - the real `ty -> sluice-yon -> sluice-agent -> fylo` chain;
-- the portable filesystem and Linux `renameat2(RENAME_NOREPLACE)` suites on the
-  isolated volume;
+- the shared handle-relative Unix installer on both filesystems, including
+  hostile parent replacement, permission denial, no-replace races, real
+  partial-write ENOSPC cleanup, unsupported-rename error mapping, and forced
+  pre-rename recovery;
 - the XDG autostart contract; and
 - two AppDir starts under isolated X11 and D-Bus, including authenticated
   health, stable token, native IPC, and coordinated process shutdown.
@@ -66,11 +68,6 @@ The isolated D-Bus session did not include
 those APIs but reported that the services were unavailable. Visual tray/menu
 behavior, notification delivery, accessibility, keyboard behavior, and a real
 desktop login/autostart session remain native manual gates.
-
-The filesystem run proves the portable and no-replace contracts on the
-ext4-compatible Docker volume. It does not yet prove handle-relative hostile
-parent-swap containment, real ENOSPC cleanup, forced pre-rename recovery, or
-an additional Linux filesystem. Those remain open in the filesystem record.
 
 Linux amd64 remains unqualified. Final AppImage construction, distro-specific
 integration, installation, upgrade/rollback, signing, SBOM, and provenance

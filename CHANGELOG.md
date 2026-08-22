@@ -24,4 +24,5 @@ independently by `docs/VERSIONING.md`.
   capability rotation, and coordinated shutdown.
 - Digest-pinned Linux arm64 runtime and AppDir qualification with native Unix
   IPC, XDG state/autostart contracts, authenticated process topology, and
-  explicit headless tray/notification limitations.
+  explicit headless tray/notification limitations; shared handle-relative
+  atomic installation qualified on an ext4-compatible volume and tmpfs.

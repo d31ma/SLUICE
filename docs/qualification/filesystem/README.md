@@ -86,18 +86,18 @@ ledger must reconcile destination content before deciding whether to retry.
 
 ## Link-safety boundary
 
-The macOS implementation is directory-handle-relative. Immediately before its
-`renameatx_np` commit, it reopens the configured root and logical parent through
-no-follow handles and compares device and inode identities with the handles that
-own the temporary file. A deterministic hostile-swap test renames the opened
-parent and replaces its logical path with a symlink while installation is in
-progress. The call fails closed, removes the temporary file through the original
-directory handle, and writes no bytes through the replacement link.
+The macOS and Linux implementations are directory-handle-relative. Immediately
+before their `renameatx_np` or `renameat2(RENAME_NOREPLACE)` commit, they reopen
+the configured root and logical parent through no-follow handles and compare
+device and inode identities with the handles that own the temporary file. A
+deterministic hostile-swap test renames the opened parent and replaces its
+logical path with a symlink while installation is in progress. The call fails
+closed, removes the marked temporary file through the original directory
+handle, and writes no bytes through the replacement link.
 
-The Linux and Windows implementations still use path-based component checks.
-Their native concurrent-swap gates remain failed until equivalent handle-based
-adapters and native evidence exist. Cross-compilation does not qualify those
-implementations.
+Windows still uses path-based component checks. Its native concurrent-swap
+gate remains failed until an equivalent handle-based adapter and native
+evidence exist. Cross-compilation does not qualify it.
 
 ## Stable failures
 
@@ -114,6 +114,11 @@ for the destructive disk-full fixture. The same run proves APFS case and
 NFC/NFD collision behavior and kills a child after its complete temporary
 payload exists but before rename, then verifies orphan cleanup and recovery.
 It neither modifies the host filesystem layout nor promotes another target.
+
+The Linux arm64 qualification runs the same shared secure installer as an
+unprivileged user on an ext4-compatible volume and tmpfs. It proves hostile
+parent-swap containment, real tmpfs ENOSPC cleanup, unsupported-rename error
+classification, and pre-rename forced-termination recovery.
 
 See [QUALIFICATION.md](QUALIFICATION.md) for the exact environment, command,
 observations, and remaining Windows and Linux native gates.
