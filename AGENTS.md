@@ -25,8 +25,10 @@ stay within the active phase and satisfy that phase's acceptance gate.
 ## Current status
 
 Sluice is in Phase 1 feasibility and executable-contract work. Native macOS
-arm64 and Linux arm64 evidence exists, but the Phase 1 gate remains open for
-the targets and interactive/provider checks named in
+and Linux arm64/amd64 runtime and package-staging evidence exists. Windows
+portable staging and ordinary native suites pass, but the pinned Fylo artifact
+blocks the full installed-runtime chain. The Phase 1 gate remains open for the
+destructive filesystem, interactive desktop, and provider checks named in
 `docs/qualification/README.md`. No target, integration, or release tier is
 supported until that gate is green.
 

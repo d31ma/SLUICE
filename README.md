@@ -89,9 +89,14 @@ unsigned four-process `Sluice.app` topology. The packaged app also passes a
 maintained ten-minute resource baseline, bounded Tachyon/agent recovery, and
 clean shutdown. Native Linux arm64 evidence covers the pinned runtimes,
 production Unix IPC, and a headless AppDir lifecycle; its real desktop-shell
-gate remains open. MinIO and RustFS pass the current S3 provider contract.
-Native Windows, Linux amd64 and graphical desktop execution, authorized AWS
-S3, and macOS visual/accessibility and real-login checks remain open, so no
+gate remains open. Native Linux amd64 now passes the same pinned-runtime and
+headless AppDir topology, while native macOS amd64 passes pinned runtimes and
+the non-graphical packaged topology. Windows portable-package staging and its
+ordinary Go suites run natively, but the pinned Fylo artifact advertises an
+insufficient machine-access capability and blocks the full chain. MinIO and
+RustFS pass the current S3 provider contract. Destructive Linux amd64 and
+Windows filesystem qualification, interactive desktop execution, authorized
+AWS S3, and visual/accessibility and real-login checks remain open, so no
 operating system, storage provider, installer, or release tier is supported
 yet.
 

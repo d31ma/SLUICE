@@ -10,9 +10,10 @@ native-tested claim requires the named suite to execute on the target OS.
 | Target | Build evidence | Native evidence | Current conclusion |
 | --- | --- | --- | --- |
 | macOS 26.5.2 arm64 | Native arm64 unsigned `Sluice.app` built with private Tachyon and Fylo runtimes | Automated window, tray API, hide/show, notification request, isolated LaunchAgent lifecycle, maintained ten-minute four-process baseline, bounded Tachyon/agent fault recovery, and coordinated shutdown passed on 2026-08-21 | Phase 1 partial; visual tray/notification, real-login launch, and accessibility remain |
-| Windows amd64 | Full Fyne binary cross-built as PE32+ with Zig; autostart test binary cross-built | None | Buildable only; registry and desktop lifecycle are not native-tested |
-| Linux arm64 | Native unsigned `Sluice.AppDir` built with pinned private runtimes | Headless Xvfb/D-Bus Fyne lifecycle, XDG autostart tests, authenticated health, two starts, and coordinated shutdown passed; the isolated bus lacked tray and notification services | Phase 1 partial; real graphical desktop tray/notification, real-login launch, accessibility, and Linux amd64 remain |
-| Linux amd64 | Autostart test binary cross-built as a static ELF | None | Buildable only; desktop target is not native-tested |
+| macOS 15.7.7 amd64 | Native unsigned `Sluice.app` built with private Tachyon and Fylo runtimes | The packaged four-process runtime passed twice on a hosted Intel runner; Fyne was intentionally not initialized because the runner exposed no usable NSGL pixel format | Phase 1 partial; all graphical, tray/notification, real-login, and accessibility evidence remains |
+| Windows amd64 | Native portable package staging plus ordinary/race Go tests; full Fyne binary also cross-built as PE32+ | The portable layout and Windows process/filesystem code run natively; the pinned Fylo artifact blocks the required full runtime chain before desktop startup | Phase 1 partial; full packaged runtime, registry/autostart, graphical lifecycle, tray/notification, real-login, and accessibility remain |
+| Linux arm64 | Native unsigned `Sluice.AppDir` built with pinned private runtimes | Headless Xvfb/D-Bus Fyne lifecycle, XDG autostart tests, authenticated health, two starts, and coordinated shutdown passed; the isolated bus lacked tray and notification services | Phase 1 partial; real graphical desktop tray/notification, real-login launch, and accessibility remain |
+| Linux amd64 | Native unsigned `Sluice.AppDir` built with pinned private runtimes | Hosted Xvfb/D-Bus package lifecycle, authenticated health, two starts, and coordinated shutdown passed | Phase 1 partial; real graphical desktop tray/notification, real-login launch, accessibility, and destructive filesystem qualification remain |
 
 No desktop target is currently Preview or Supported. Windows and Linux must
 not inherit the macOS result.
@@ -87,4 +88,6 @@ Platform mechanisms and safety properties are documented in
 `AUTOSTART_CONTRACT.md`. The first macOS execution record is in
 `MACOS-2026-08-21.md`; the packaged topology record is in
 `../runtime/2026-08-21-macos-arm64-app.md`. The headless Linux arm64 record is
-in `LINUX-2026-08-21.md`.
+in `LINUX-2026-08-21.md`. Hosted amd64 package-runtime records are in
+`../runtime/2026-08-22-macos-amd64-hosted.md` and
+`../runtime/2026-08-22-linux-amd64-hosted.md`.

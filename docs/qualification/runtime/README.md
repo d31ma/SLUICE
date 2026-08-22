@@ -31,6 +31,8 @@ installed. A skip is never qualification evidence.
 - [macOS arm64 runtime bundle staging, 2026-08-21](2026-08-21-macos-arm64-bundle.md)
 - [Unsigned macOS arm64 application topology, 2026-08-21](2026-08-21-macos-arm64-app.md)
 - [Linux arm64 runtime and AppDir, 2026-08-21](2026-08-21-linux-arm64-container.md)
+- [macOS amd64 hosted runtime and package staging, 2026-08-22](2026-08-22-macos-amd64-hosted.md)
+- [Linux amd64 hosted runtime and AppDir staging, 2026-08-22](2026-08-22-linux-amd64-hosted.md)
 - [Runtime bundling contract](BUNDLING.md)
 
 ## Promotion rule
@@ -51,6 +53,10 @@ artifacts:
 
 The macOS arm64 report also records the accepted ADR 0008 focused supervisor;
 the released Go shim's missing exclusive-root flag is no longer an open Phase
-1 dependency. Linux arm64 now has native container and headless AppDir
-evidence, but its real desktop gate remains open. Windows, Linux amd64, and
-macOS amd64 have no native report. Every support tier remains unqualified.
+1 dependency. Linux arm64 and amd64 now have native headless AppDir evidence,
+and macOS amd64 has native headless package-runtime evidence. Those hosted
+runs do not satisfy any interactive desktop gate. Windows installed-runtime
+execution remains blocked because the Fylo 26.33.02 artifact advertises
+machine access capability `0`; see
+[upstream issue 105](https://github.com/d31ma/FYLO/issues/105). Every support
+tier remains unqualified.

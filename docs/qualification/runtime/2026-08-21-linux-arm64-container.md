@@ -69,6 +69,8 @@ those APIs but reported that the services were unavailable. Visual tray/menu
 behavior, notification delivery, accessibility, keyboard behavior, and a real
 desktop login/autostart session remain native manual gates.
 
-Linux amd64 remains unqualified. Final AppImage construction, distro-specific
-integration, installation, upgrade/rollback, signing, SBOM, and provenance
-remain Phases 8 and 9 work.
+Linux amd64 now has a separate native hosted runtime and headless AppDir record
+in `2026-08-22-linux-amd64-hosted.md`; its real graphical desktop and
+destructive filesystem gates remain open. Final AppImage construction,
+distro-specific integration, installation, upgrade/rollback, signing, SBOM,
+and provenance remain Phases 8 and 9 work.
