@@ -156,10 +156,10 @@ jobs:
         run: >-
           ./scripts/test-app-bundle-windows.ps1
           -StagedRoot $env:SLUICE_WINDOWS_STAGE
-      - name: Exercise native macOS package topology twice
+      - name: Exercise native macOS package runtime topology twice
         if: runner.os == 'macOS'
         shell: bash
-        run: ./scripts/test-app-bundle-macos.sh "$SLUICE_MACOS_STAGE"
+        run: ./scripts/test-app-bundle-macos.sh --runtime-only "$SLUICE_MACOS_STAGE"
       - name: Exercise native Linux package topology twice
         if: runner.os == 'Linux'
         shell: bash

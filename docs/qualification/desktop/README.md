@@ -25,6 +25,7 @@ The desktop binary provides these observable commands:
 sluice-desktop
 sluice-desktop --background
 sluice-desktop --native-smoke
+sluice-desktop --packaged-runtime-smoke
 sluice-desktop autostart enable
 sluice-desktop autostart disable
 sluice-desktop autostart status
@@ -42,6 +43,14 @@ Tachyon server, and Yon health handler. A zero exit code proves that the native
 code path completed without a panic or lifecycle error; it cannot prove that a
 desktop shell rendered a tray icon or displayed a notification. Those
 observations remain manual native gates.
+
+`--packaged-runtime-smoke` is the non-graphical counterpart for headless
+native hosts. It starts the same bundle-resolved agent, warm Fylo child,
+Tachyon server, and Yon health handler, holds that generation for a bounded
+interval, and performs coordinated shutdown without initializing Fyne or
+claiming any window, tray, notification, or accessibility evidence. Hosted
+macOS qualification uses this mode because the runner exposes no usable NSGL
+pixel format; real desktop sessions continue to use `--native-smoke`.
 
 The packaged coordinator resolves every executable relative to the macOS
 `Contents/MacOS/sluice-desktop` or Linux `Sluice.AppDir/AppRun` entry point,

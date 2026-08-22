@@ -29,10 +29,11 @@ const (
 )
 
 type desktopOptions struct {
-	executable  string
-	stateRoot   string
-	background  bool
-	nativeSmoke bool
+	executable           string
+	stateRoot            string
+	background           bool
+	nativeSmoke          bool
+	packagedRuntimeSmoke bool
 }
 
 type (
@@ -88,7 +89,8 @@ func run(
 	flags.SetOutput(stderr)
 	background := flags.Bool("background", false, "start in the system tray without opening the window")
 	nativeSmoke := flags.Bool("native-smoke", false, "exercise the native window, tray, notification, and shutdown lifecycle")
-	stateRoot := flags.String("qualification-state-root", "", "use an isolated state root during --native-smoke")
+	packagedRuntimeSmoke := flags.Bool("packaged-runtime-smoke", false, "exercise the packaged runtime lifecycle without initializing the graphical shell")
+	stateRoot := flags.String("qualification-state-root", "", "use an isolated state root during a qualification smoke run")
 	if err := flags.Parse(args); err != nil {
 		return 2
 	}
@@ -98,15 +100,16 @@ func run(
 		}
 		return 2
 	}
-	if err := validateQualificationStateRoot(*nativeSmoke, *stateRoot); err != nil {
+	if err := validateQualificationOptions(*nativeSmoke, *packagedRuntimeSmoke, *stateRoot); err != nil {
 		writeError(stderr, err)
 		return 2
 	}
 	if err := startDesktop(ctx, desktopOptions{
-		background:  *background,
-		nativeSmoke: *nativeSmoke,
-		executable:  executable,
-		stateRoot:   *stateRoot,
+		background:           *background,
+		nativeSmoke:          *nativeSmoke,
+		packagedRuntimeSmoke: *packagedRuntimeSmoke,
+		executable:           executable,
+		stateRoot:            *stateRoot,
 	}); err != nil {
 		writeError(stderr, err)
 		return 1
@@ -114,12 +117,15 @@ func run(
 	return 0
 }
 
-func validateQualificationStateRoot(nativeSmoke bool, stateRoot string) error {
+func validateQualificationOptions(nativeSmoke, packagedRuntimeSmoke bool, stateRoot string) error {
+	if nativeSmoke && packagedRuntimeSmoke {
+		return fmt.Errorf("--native-smoke and --packaged-runtime-smoke are mutually exclusive")
+	}
 	if stateRoot == "" {
 		return nil
 	}
-	if !nativeSmoke {
-		return fmt.Errorf("--qualification-state-root requires --native-smoke")
+	if !nativeSmoke && !packagedRuntimeSmoke {
+		return fmt.Errorf("--qualification-state-root requires a qualification smoke mode")
 	}
 	if !filepath.IsAbs(stateRoot) {
 		return fmt.Errorf("--qualification-state-root must be absolute")
@@ -179,6 +185,11 @@ func writeError(writer io.Writer, err error) {
 }
 
 func runDesktop(ctx context.Context, options desktopOptions) error {
+	if options.packagedRuntimeSmoke {
+		return runDesktopWithLifecycle(ctx, options, startPackagedRuntime, func() error {
+			return awaitPackagedRuntimeSmoke(ctx, nativeSmokeDuration)
+		})
+	}
 	return runDesktopWithLifecycle(ctx, options, startPackagedRuntime, func() error {
 		runFyneDesktop(ctx, options)
 		return nil
@@ -210,9 +221,27 @@ func startPackagedRuntime(ctx context.Context, options desktopOptions) (runtimeS
 		return nil, err
 	}
 	if !packaged {
-		return nil, nil
+		return nil, unpackagedRuntimeSmokeError(options.packagedRuntimeSmoke)
 	}
 	return startCoordinator(ctx, coordinator)
+}
+
+func unpackagedRuntimeSmokeError(required bool) error {
+	if required {
+		return fmt.Errorf("packaged runtime smoke requires an installed application package")
+	}
+	return nil
+}
+
+func awaitPackagedRuntimeSmoke(ctx context.Context, duration time.Duration) error {
+	timer := time.NewTimer(duration)
+	defer timer.Stop()
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-timer.C:
+		return nil
+	}
 }
 
 func startCoordinator(ctx context.Context, coordinator *lifecycle.Coordinator) (runtimeSession, error) {

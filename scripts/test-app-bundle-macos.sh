@@ -2,6 +2,11 @@
 set -eu
 
 repo_root=$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd)
+smoke_flag=--native-smoke
+if [ "${1:-}" = --runtime-only ]; then
+  smoke_flag=--packaged-runtime-smoke
+  shift
+fi
 case "$#" in
   0)
     stage_root=$(mktemp -d "${TMPDIR:-/tmp}/sluice-app-stage.XXXXXX")
@@ -16,7 +21,7 @@ case "$#" in
     esac
     ;;
   *)
-    echo "usage: $0 [ABSOLUTE_STAGED_DIRECTORY]" >&2
+    echo "usage: $0 [--runtime-only] [ABSOLUTE_STAGED_DIRECTORY]" >&2
     exit 2
     ;;
 esac
@@ -42,7 +47,7 @@ state_root="$stage_root/qualification-state"
 run_smoke() {
   PATH=/usr/bin:/bin "$desktop" \
     --background \
-    --native-smoke \
+    "$smoke_flag" \
     --qualification-state-root "$state_root" &
   desktop_pid=$!
 
@@ -89,4 +94,8 @@ if pgrep -f "$app/Contents/Helpers/sluice-agent" >/dev/null || \
   exit 1
 fi
 
-echo "app bundle test: packaged health, native IPC, restart, and clean shutdown passed"
+if [ "$smoke_flag" = --native-smoke ]; then
+  echo "app bundle test: packaged health, native IPC, native UI lifecycle, restart, and clean shutdown passed"
+else
+  echo "app bundle test: packaged health, native IPC, headless runtime lifecycle, restart, and clean shutdown passed"
+fi
