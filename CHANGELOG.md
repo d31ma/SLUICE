@@ -22,3 +22,6 @@ independently by `docs/VERSIONING.md`.
   qualification of the Fyne/Tachyon/Yon/agent/Fylo topology with authenticated
   health, bounded Tachyon/agent fault recovery, resource measurements,
   capability rotation, and coordinated shutdown.
+- Digest-pinned Linux arm64 runtime and AppDir qualification with native Unix
+  IPC, XDG state/autostart contracts, authenticated process topology, and
+  explicit headless tray/notification limitations.

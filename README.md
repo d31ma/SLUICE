@@ -87,10 +87,13 @@ arm64 evidence now covers the pinned Tachyon/Fylo runtime boundary, private
 Unix-socket Yon-to-agent bridge, APFS atomic-install failure corpus, and an
 unsigned four-process `Sluice.app` topology. The packaged app also passes a
 maintained ten-minute resource baseline, bounded Tachyon/agent recovery, and
-clean shutdown. MinIO and RustFS pass the current S3 provider contract. Native
-Windows/Linux execution, authorized AWS S3, and macOS visual/accessibility and
-real-login checks remain open, so no operating system, storage provider,
-installer, or release tier is supported yet.
+clean shutdown. Native Linux arm64 evidence covers the pinned runtimes,
+production Unix IPC, and a headless AppDir lifecycle; its real desktop-shell
+gate remains open. MinIO and RustFS pass the current S3 provider contract.
+Native Windows, Linux amd64 and graphical desktop execution, authorized AWS
+S3, and macOS visual/accessibility and real-login checks remain open, so no
+operating system, storage provider, installer, or release tier is supported
+yet.
 
 Canonical development commands:
 
@@ -99,6 +102,8 @@ make bootstrap
 make test
 make check
 make build
+# Native Linux arm64 Docker engine only:
+make linux-qualify-arm64
 ```
 
 The authoritative Phase 1 evidence and remaining gates are in

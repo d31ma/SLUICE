@@ -89,8 +89,8 @@
       "id": "linux-arm64",
       "os": "linux",
       "arch": "arm64",
-      "qualification": "not-native-tested",
-      "evidence": null,
+      "qualification": "native-staging-passed",
+      "evidence": "docs/qualification/runtime/2026-08-21-linux-arm64-container.md",
       "noticeDirectory": "usr/share/doc/sluice/licenses",
       "artifacts": [
         {

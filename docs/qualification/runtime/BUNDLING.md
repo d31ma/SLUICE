@@ -26,14 +26,16 @@ verification separate from privileged installation.
 | --- | --- | --- | --- |
 | macOS arm64 | `Sluice.app/Contents/Resources/runtime/bin/{ty,fylo}` | `Sluice.app/Contents/Resources/licenses` | Native staging passed on the named host |
 | macOS amd64 | `Sluice.app/Contents/Resources/runtime/bin/{ty,fylo}` | `Sluice.app/Contents/Resources/licenses` | Not native-tested |
-| Linux arm64/amd64 | `usr/lib/sluice/runtime/bin/{ty,fylo}` | `usr/share/doc/sluice/licenses` | Not native-tested |
+| Linux arm64 | `Sluice.AppDir/usr/lib/sluice/runtime/bin/{ty,fylo}` | `Sluice.AppDir/usr/share/doc/sluice/licenses` | Native staging passed in the named Linux arm64 container environment |
+| Linux amd64 | `usr/lib/sluice/runtime/bin/{ty,fylo}` | `usr/share/doc/sluice/licenses` | Not native-tested |
 | Windows amd64 | `Sluice/runtime/bin/{ty.exe,fylo.exe}` | `Sluice/licenses` | Not native-tested |
 
-The macOS application resolves the executables from its resources directory.
-Future Linux and Windows installers must preserve the declared relative
-layout within their package roots and then pass native staging and installed-
-runtime suites before their status changes. This document does not claim that
-those installers exist or work.
+The macOS application resolves executables from its resources directory. The
+Linux arm64 AppDir resolves them beneath `usr/lib/sluice` from its real
+`AppRun` location. Future Windows and Linux amd64 installers must preserve the
+declared relative layout within their package roots and then pass native
+staging and installed-runtime suites before their status changes. This
+document does not claim that final installers exist or work.
 
 ## Verification order
 
@@ -67,6 +69,14 @@ requires clean descriptor/socket/process shutdown. The native result is
 recorded in
 `docs/qualification/runtime/2026-08-21-macos-arm64-app.md`.
 
+`make linux-qualify-arm64` performs the equivalent Linux arm64 artifact and
+AppDir checks in a digest-pinned native arm64 container, then executes the
+installed-runtime, production Unix IPC, XDG, filesystem, and headless Fyne
+lifecycle suites. The Tachyon 26.33.02 Linux artifact requires glibc 2.39 or
+newer; the accepted environment uses glibc 2.41. The result and graphical
+desktop limitations are recorded in
+`docs/qualification/runtime/2026-08-21-linux-arm64-container.md`.
+
 ## Legal materials
 
 The redistributed copies are:
@@ -88,4 +98,5 @@ remains a release-engineering gate beyond this two-runtime license contract.
 Adding an artifact or cross-compiling a package does not qualify a target.
 Change `qualification` to `native-staging-passed` only in the same change that
 adds a native evidence report naming the host, artifact digests, command, and
-results. Windows and Linux remain `not-native-tested` until those runs exist.
+results. Windows, Linux amd64, and macOS amd64 remain `not-native-tested` until
+those runs exist.

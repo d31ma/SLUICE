@@ -11,7 +11,8 @@ native-tested claim requires the named suite to execute on the target OS.
 | --- | --- | --- | --- |
 | macOS 26.5.2 arm64 | Native arm64 unsigned `Sluice.app` built with private Tachyon and Fylo runtimes | Automated window, tray API, hide/show, notification request, isolated LaunchAgent lifecycle, maintained ten-minute four-process baseline, bounded Tachyon/agent fault recovery, and coordinated shutdown passed on 2026-08-21 | Phase 1 partial; visual tray/notification, real-login launch, and accessibility remain |
 | Windows amd64 | Full Fyne binary cross-built as PE32+ with Zig; autostart test binary cross-built | None | Buildable only; registry and desktop lifecycle are not native-tested |
-| Linux amd64 | Autostart test binary cross-built as a static ELF | None; full Fyne cross-build lacks local Wayland/OpenGL development files | Autostart package buildable only; desktop target is not native-tested |
+| Linux arm64 | Native unsigned `Sluice.AppDir` built with pinned private runtimes | Headless Xvfb/D-Bus Fyne lifecycle, XDG autostart tests, authenticated health, two starts, and coordinated shutdown passed; the isolated bus lacked tray and notification services | Phase 1 partial; real graphical desktop tray/notification, real-login launch, accessibility, and Linux amd64 remain |
+| Linux amd64 | Autostart test binary cross-built as a static ELF | None | Buildable only; desktop target is not native-tested |
 
 No desktop target is currently Preview or Supported. Windows and Linux must
 not inherit the macOS result.
@@ -42,11 +43,12 @@ code path completed without a panic or lifecycle error; it cannot prove that a
 desktop shell rendered a tray icon or displayed a notification. Those
 observations remain manual native gates.
 
-The packaged coordinator resolves every executable relative to
-`Contents/MacOS/sluice-desktop`, reaches authenticated health before presenting
-the Fyne shell, stops Tachyon before the agent, and waits for the agent and warm
-Fylo child to exit. The isolated qualification runs the topology twice against
-the same private state root and stable API token without relying on `PATH`.
+The packaged coordinator resolves every executable relative to the macOS
+`Contents/MacOS/sluice-desktop` or Linux `Sluice.AppDir/AppRun` entry point,
+reaches authenticated health before presenting the Fyne shell, stops Tachyon
+before the agent, and waits for the agent and warm Fylo child to exit. The
+isolated qualification runs the topology twice against the same private state
+root and stable API token without relying on `PATH`.
 The maintained qualification additionally holds one unchanged generation for a
 30-second warmup and 600-second idle sample, then separately forces Tachyon and
 agent failures and requires the desktop to restore a complete healthy
@@ -75,4 +77,5 @@ reason to hold the Phase 1 desktop row open.
 Platform mechanisms and safety properties are documented in
 `AUTOSTART_CONTRACT.md`. The first macOS execution record is in
 `MACOS-2026-08-21.md`; the packaged topology record is in
-`../runtime/2026-08-21-macos-arm64-app.md`.
+`../runtime/2026-08-21-macos-arm64-app.md`. The headless Linux arm64 record is
+in `LINUX-2026-08-21.md`.

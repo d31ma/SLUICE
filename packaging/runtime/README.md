@@ -30,6 +30,15 @@ bundle and exercise the full desktop/Tachyon/Yon/agent/Fylo topology twice:
 make app-package-macos
 ```
 
+On a Linux arm64 Docker engine, the digest-pinned qualification stages the
+Linux payload, runs the required-runtime and native IPC suites, builds an
+unsigned AppDir, and exercises its full process topology twice under an
+isolated display:
+
+```sh
+make linux-qualify-arm64
+```
+
 The staging test never writes to `/Applications`, `/Library`, `/usr`, `/opt`,
 or another installation path. A future installer consumes the same relative
 layout beneath its own package root only after target-specific native evidence

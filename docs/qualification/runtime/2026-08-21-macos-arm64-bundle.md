@@ -44,8 +44,9 @@ modified.
 
 ## Remaining Phase 1 gates
 
-- Windows and Linux require independent native runtime staging and unsigned
-  package-topology runs; their manifest entries remain `not-native-tested`.
+- Windows, Linux amd64, and macOS amd64 require independent native runtime
+  staging and unsigned package-topology runs. Linux arm64 is recorded in
+  `2026-08-21-linux-arm64-container.md`.
 
 The unsigned application topology and bundled-runtime suite pass in the
 isolated native package recorded in

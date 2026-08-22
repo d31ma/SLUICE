@@ -10,7 +10,7 @@ Date: 2026-08-21
 | Go toolchain | Go 1.27.0 host tool runs as darwin/amd64 under translation; qualification binaries explicitly target darwin/arm64 |
 | Native temporary filesystem | APFS temporary directories plus an isolated 64 MiB APFS disk image for real ENOSPC |
 | Sluice source | `f179e8522ff22223d9de51e5828d8bfac9b6203c` |
-| Linux evidence | amd64 test binary compiled only |
+| Linux evidence | Native arm64 ordinary/race suite on an ext4-compatible Docker volume at source `83b47eefc634a22534abb0e77e97abd17b829ecf`; amd64 compile only |
 | Windows evidence | amd64 test executable compiled only |
 
 Cross-compilation proves source compatibility only. It does not promote Linux
@@ -83,6 +83,12 @@ PASS TestAtomicInstallerFailsClosedOnAPFSCollisions/normalization
 PASS TestAtomicInstallerRecoversAfterPreRenameTermination
 filesystem macOS qualification: native arm64, APFS collisions, real ENOSPC,
 and pre-rename recovery passed
+
+make linux-qualify-arm64
+PASS
+ok github.com/d31ma/sluice/internal/filesystem (race-enabled native Linux arm64 suite)
+# Linux 7.0.12-linuxkit aarch64; unprivileged user; anonymous volume reported
+# as ext2/ext3; renameat2(RENAME_NOREPLACE) path executed
 ```
 
 ## Native gates still required
@@ -95,7 +101,8 @@ Linux filesystems:
 | --- | --- |
 | macOS arm64 / APFS | Passed: native ordinary and race suites, no-replace race, handle-relative parent-swap containment, permission denial, real ENOSPC cleanup, case and normalization collisions, and pre-rename termination/restart |
 | Windows / NTFS | Pending: native no-replace race, reparse point and junction rejection, ACL/permission denial, disk-full cleanup, forced termination around `MoveFileEx`, and restart verification |
-| Linux / ext4 plus one additional local filesystem | Pending: native handle-relative symlink-swap containment, permission denial, disk-full cleanup, `renameat2` unsupported-filesystem behavior, forced termination, and restart verification |
+| Linux arm64 / ext4-compatible Docker volume | Partial: portable/race suite, permission behavior, symlink rejection, and `renameat2(RENAME_NOREPLACE)` passed natively. Pending: handle-relative hostile parent swap, real ENOSPC, unsupported-filesystem behavior, forced pre-rename termination/restart, and one additional local filesystem |
+| Linux amd64 | Pending: repeat the complete Linux corpus natively |
 
 Network, object-backed, and independently synchronized roots are outside the
 qualified filesystem set. The Fylo root has its own stricter placement gate.
@@ -105,9 +112,10 @@ qualified filesystem set. The Fylo root has its own stricter placement gate.
 The portable path grammar, conservative collision key, and stable-file atomic
 installation contract pass on the recorded native arm64 macOS/APFS
 environment. The permission, cancellation, real ENOSPC, collision,
-forced-pre-rename recovery, and hostile parent-swap gates pass. Windows and
-Linux compile, but remain unqualified until native execution and equivalent
-handle-relative containment evidence exist.
+forced-pre-rename recovery, and hostile parent-swap gates pass. Linux arm64 now
+has native evidence for the portable installer and no-replace path, but remains
+partial until the destructive containment corpus above passes. Windows and
+Linux amd64 remain compile-only.
 
 The installer's documented ambiguous outcome after a successful rename but a
 failed directory flush remains an input to the later durable operation-ledger
