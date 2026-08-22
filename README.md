@@ -95,10 +95,10 @@ the non-graphical packaged topology. Windows portable-package staging and its
 ordinary Go suites run natively, but the pinned Fylo artifact advertises an
 insufficient machine-access capability and blocks the full chain. MinIO and
 RustFS pass the current S3 provider contract. Destructive Linux amd64 and
-Windows filesystem qualification, interactive desktop execution, authorized
-AWS S3, and visual/accessibility and real-login checks remain open, so no
-operating system, storage provider, installer, or release tier is supported
-yet.
+Windows NTFS filesystem qualification now pass on their recorded native hosts.
+Interactive desktop execution, authorized AWS S3, and visual/accessibility and
+real-login checks remain open, so no operating system, storage provider,
+installer, or release tier is supported yet.
 
 Canonical development commands:
 

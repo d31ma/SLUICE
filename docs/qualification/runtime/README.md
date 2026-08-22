@@ -33,6 +33,7 @@ installed. A skip is never qualification evidence.
 - [Linux arm64 runtime and AppDir, 2026-08-21](2026-08-21-linux-arm64-container.md)
 - [macOS amd64 hosted runtime and package staging, 2026-08-22](2026-08-22-macos-amd64-hosted.md)
 - [Linux amd64 hosted runtime and AppDir staging, 2026-08-22](2026-08-22-linux-amd64-hosted.md)
+- [Windows amd64 native staging and upstream blocker, 2026-08-22](2026-08-22-windows-amd64-blocked.md)
 - [Runtime bundling contract](BUNDLING.md)
 
 ## Promotion rule
@@ -58,5 +59,6 @@ and macOS amd64 has native headless package-runtime evidence. Those hosted
 runs do not satisfy any interactive desktop gate. Windows installed-runtime
 execution remains blocked because the Fylo 26.33.02 artifact advertises
 machine access capability `0`; see
+[the native blocker record](2026-08-22-windows-amd64-blocked.md) and
 [upstream issue 105](https://github.com/d31ma/FYLO/issues/105). Every support
 tier remains unqualified.

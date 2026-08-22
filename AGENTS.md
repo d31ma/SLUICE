@@ -28,9 +28,11 @@ Sluice is in Phase 1 feasibility and executable-contract work. Native macOS
 and Linux arm64/amd64 runtime and package-staging evidence exists. Windows
 portable staging and ordinary native suites pass, but the pinned Fylo artifact
 blocks the full installed-runtime chain. The Phase 1 gate remains open for the
-destructive filesystem, interactive desktop, and provider checks named in
-`docs/qualification/README.md`. No target, integration, or release tier is
-supported until that gate is green.
+interactive desktop, Windows installed-runtime, and authorized provider checks
+named in `docs/qualification/README.md`. The destructive filesystem scope now
+passes on its named APFS, NTFS, ext4-compatible, and tmpfs environments. No
+target, integration, or release tier is supported until the complete gate is
+green.
 
 ## Non-negotiable architecture
 

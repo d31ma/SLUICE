@@ -43,7 +43,8 @@ With required-runtime skips disabled, the following race-enabled suites passed:
 
 Xvfb and the isolated D-Bus session do not prove tray/menu rendering,
 notification delivery, keyboard behavior, accessibility, or a real graphical
-login/autostart session. The hosted run also does not replace the destructive
-filesystem disk-pressure fixtures required by the separate filesystem gate.
+login/autostart session. This runtime run does not itself prove destructive
+filesystem behavior; that separate gate later passed in
+`../filesystem/2026-08-22-linux-amd64-ext4-tmpfs.md`.
 Final AppImage construction, distro integration, installation, signing,
 upgrade/rollback, SBOM, and provenance remain Phase 8 and Phase 9 work.

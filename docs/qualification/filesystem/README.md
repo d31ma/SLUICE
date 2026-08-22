@@ -1,8 +1,9 @@
 # Filesystem contract qualification
 
 This directory records the Phase 1 contract for platform-neutral logical paths
-and verified atomic file installation. It is evidence for the filesystem spike,
-not a claim that Windows, Linux, or all macOS filesystems are qualified.
+and verified atomic file installation. The named native APFS, NTFS,
+ext4-compatible, and tmpfs environments have passed; that evidence is not a
+claim about every filesystem available on Windows, Linux, or macOS.
 
 ## Logical-path contract
 
@@ -103,11 +104,10 @@ logical path with a symlink while installation is in progress. The call fails
 closed, removes the marked temporary file through the original directory
 handle, and writes no bytes through the replacement link.
 
-The Windows adapter now holds a no-reparse handle for every logical parent and
+The Windows adapter holds a no-reparse handle for every logical parent and
 denies delete sharing until the handle-relative rename completes. Its native
-gate remains open until the ordinary/race, parent-swap, reparse, interruption,
-permission, and disk-pressure suites execute on NTFS. Cross-compilation does
-not qualify it.
+NTFS ordinary/race, parent-swap, reparse and junction, interruption, ACL, and
+disk-pressure suites passed on the recorded Windows Server 2025 amd64 host.
 
 ## Stable failures
 
@@ -130,5 +130,12 @@ unprivileged user on an ext4-compatible volume and tmpfs. It proves hostile
 parent-swap containment, real tmpfs ENOSPC cleanup, unsupported-rename error
 classification, and pre-rename forced-termination recovery.
 
+The Linux amd64 hosted qualification repeats the destructive corpus on a local
+ext4 scratch filesystem and isolated tmpfs. The Windows amd64 hosted
+qualification uses an isolated NTFS VHDX and additionally requires native
+reparse-point, junction, ACL, disk-full, and process-termination fixtures.
+
 See [QUALIFICATION.md](QUALIFICATION.md) for the exact environment, command,
-observations, and remaining Windows and Linux native gates.
+observations, and scope. Platform-specific hosted records are
+[Windows amd64 NTFS](2026-08-22-windows-amd64-ntfs.md) and
+[Linux amd64 ext4/tmpfs](2026-08-22-linux-amd64-ext4-tmpfs.md).

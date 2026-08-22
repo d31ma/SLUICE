@@ -111,4 +111,6 @@ adds a native evidence report naming the host, artifact digests, command, and
 results. macOS amd64 and Linux amd64 meet that narrow staging rule through the
 2026-08-22 hosted reports. Windows remains `not-native-tested`: its native
 portable layout stages successfully, but the pinned Fylo artifact prevents the
-required installed-runtime and full package-topology run.
+required installed-runtime and full package-topology run. The exact native
+observation and retry rule are recorded in
+`docs/qualification/runtime/2026-08-22-windows-amd64-blocked.md`.
