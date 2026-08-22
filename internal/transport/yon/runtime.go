@@ -52,10 +52,12 @@ type Version struct {
 
 // Server is one supervised Tachyon serve process.
 type Server struct {
-	process *os.Process
-	done    chan error
-	err     error
-	close   sync.Once
+	process  *os.Process
+	done     chan struct{}
+	waitErr  error
+	closeErr error
+	waitMu   sync.RWMutex
+	close    sync.Once
 }
 
 // NewRuntime validates configuration without starting Tachyon.
@@ -121,9 +123,34 @@ func (runtime *Runtime) Start(ctx context.Context, config ServeConfig) (*Server,
 	if err := command.Start(); err != nil {
 		return nil, fmt.Errorf("start Tachyon runtime: %w", err)
 	}
-	done := make(chan error, 1)
-	go func() { done <- command.Wait() }()
-	return &Server{process: command.Process, done: done}, nil
+	return newServer(command.Process, command.Wait), nil
+}
+
+func newServer(process *os.Process, wait func() error) *Server {
+	server := &Server{process: process, done: make(chan struct{})}
+	go server.wait(wait)
+	return server
+}
+
+func (server *Server) wait(wait func() error) {
+	err := wait()
+	server.waitMu.Lock()
+	server.waitErr = err
+	server.waitMu.Unlock()
+	close(server.done)
+}
+
+// Done closes exactly once when the Tachyon process has been reaped.
+func (server *Server) Done() <-chan struct{} {
+	return server.done
+}
+
+// Err returns the retained Tachyon wait result. It is nil while the process is
+// still running and remains safe to call after Done has closed.
+func (server *Server) Err() error {
+	server.waitMu.RLock()
+	defer server.waitMu.RUnlock()
+	return server.waitErr
 }
 
 func validateServeConfig(config ServeConfig) (string, error) {
@@ -190,9 +217,9 @@ func validatePort(port int) error {
 // bounded shutdown grace period.
 func (server *Server) Close(ctx context.Context) error {
 	server.close.Do(func() {
-		server.err = server.stop(ctx)
+		server.closeErr = server.stop(ctx)
 	})
-	return server.err
+	return server.closeErr
 }
 
 func (server *Server) stop(ctx context.Context) error {
@@ -202,11 +229,8 @@ func (server *Server) stop(ctx context.Context) error {
 	timer := time.NewTimer(shutdownGrace)
 	defer timer.Stop()
 	select {
-	case err := <-server.done:
-		if err != nil {
-			return fmt.Errorf("tachyon exited unsuccessfully: %w", err)
-		}
-		return nil
+	case <-server.done:
+		return tachyonExitError(server.Err())
 	case <-ctx.Done():
 		_ = server.process.Kill()
 		<-server.done
@@ -216,6 +240,13 @@ func (server *Server) stop(ctx context.Context) error {
 		<-server.done
 		return fmt.Errorf("tachyon did not stop within %s", shutdownGrace)
 	}
+}
+
+func tachyonExitError(err error) error {
+	if err == nil {
+		return nil
+	}
+	return fmt.Errorf("tachyon exited unsuccessfully: %w", err)
 }
 
 func tachyonEnvironment() runtimeexec.Environment {

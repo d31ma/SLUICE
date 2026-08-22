@@ -13,7 +13,7 @@ trap 'cleanup' EXIT HUP INT TERM
 
 idle_seconds=${SLUICE_QUALIFICATION_IDLE_SECONDS:-600}
 sample_seconds=${SLUICE_QUALIFICATION_SAMPLE_SECONDS:-10}
-warmup_seconds=${SLUICE_QUALIFICATION_WARMUP_SECONDS:-10}
+warmup_seconds=${SLUICE_QUALIFICATION_WARMUP_SECONDS:-30}
 
 require_positive_integer() {
   name=$1
@@ -48,9 +48,10 @@ now_milliseconds() {
 }
 
 find_staged_process() {
-  executable=$1
-  ps -axo pid=,comm= | awk -v executable="$executable" '
-    $2 == executable { print $1; exit }
+  parent=$1
+  executable=$2
+  ps -axo pid=,ppid=,comm= | awk -v parent="$parent" -v executable="$executable" '
+    $2 == parent && $3 == executable { print $1; exit }
   '
 }
 
@@ -66,7 +67,7 @@ wait_for_process() {
   executable=$2
   attempts=0
   while [ "$attempts" -lt 750 ]; do
-    child=$(find_staged_process "$executable")
+    child=$(find_staged_process "$parent" "$executable")
     if [ -n "$child" ]; then
       printf '%s\n' "$child"
       return 0
@@ -101,12 +102,13 @@ wait_for_tachyon_listener() {
   executable=$2
   attempts=0
   while [ "$attempts" -lt 750 ]; do
+    owner_process=$(find_staged_process "$owner" "$executable")
     for candidate in $(find_staged_processes "$executable"); do
       candidate_port=$(lsof -nP -a -p "$candidate" -iTCP -sTCP:LISTEN -Fn 2>/dev/null | awk -F: '
         /^n127[.]0[.]0[.]1:/ { print $NF; exit }
       ')
-      if [ -n "$candidate_port" ]; then
-        printf '%s %s\n' "$candidate" "$candidate_port"
+      if [ -n "$owner_process" ] && [ -n "$candidate_port" ]; then
+        printf '%s %s\n' "$owner_process" "$candidate_port"
         return 0
       fi
     done
@@ -144,19 +146,21 @@ wait_for_health() {
   return 1
 }
 
-start_topology() {
-  start_ms=$(now_milliseconds)
-  HOME="$qualification_home" PATH=/usr/bin:/bin "$desktop" --background &
-  desktop_pid=$!
+descriptor_capability() {
+  ruby -rjson -e 'puts JSON.parse(File.read(ARGV.fetch(0))).fetch("capability")' \
+    "$session_file" 2>/dev/null || true
+}
 
-  wait_for_file "$session_file" || {
-    echo "app runtime qualification: agent descriptor did not appear" >&2
-    return 1
-  }
-  wait_for_file "$token_file" || {
-    echo "app runtime qualification: API token did not appear" >&2
-    return 1
-  }
+read_native_descriptor() {
+  network=$(ruby -rjson -e 'puts JSON.parse(File.read(ARGV.fetch(0))).fetch("network")' "$session_file")
+  socket_path=$(ruby -rjson -e 'puts JSON.parse(File.read(ARGV.fetch(0))).fetch("address")' "$session_file")
+  generation_capability=$(descriptor_capability)
+  test "$network" = unix
+  test -n "$generation_capability"
+  test -S "$socket_path"
+}
+
+discover_generation() {
   agent_pid=$(wait_for_process "$desktop_pid" "$agent_binary") || {
     echo "app runtime qualification: agent process did not appear" >&2
     return 1
@@ -172,16 +176,27 @@ start_topology() {
     echo "app runtime qualification: Fylo process did not appear" >&2
     return 1
   }
-
-  network=$(ruby -rjson -e 'puts JSON.parse(File.read(ARGV.fetch(0))).fetch("network")' "$session_file")
-  socket_path=$(ruby -rjson -e 'puts JSON.parse(File.read(ARGV.fetch(0))).fetch("address")' "$session_file")
-  test "$network" = unix
-  test -S "$socket_path"
-
+  read_native_descriptor
   wait_for_health "$port" || {
     echo "app runtime qualification: authenticated health did not become ready" >&2
     return 1
   }
+}
+
+start_topology() {
+  start_ms=$(now_milliseconds)
+  HOME="$qualification_home" PATH=/usr/bin:/bin "$desktop" --background &
+  desktop_pid=$!
+
+  wait_for_file "$session_file" || {
+    echo "app runtime qualification: agent descriptor did not appear" >&2
+    return 1
+  }
+  wait_for_file "$token_file" || {
+    echo "app runtime qualification: API token did not appear" >&2
+    return 1
+  }
+  discover_generation
   ready_ms=$(now_milliseconds)
   startup_ms=$((ready_ms - start_ms))
 }
@@ -191,7 +206,27 @@ process_snapshot() {
   snapshot=$(ps -p "$pids" -o pid=,ppid=,%cpu=,rss=)
   count=$(printf '%s\n' "$snapshot" | awk 'NF { count++ } END { print count + 0 }')
   if [ "$count" -ne 4 ]; then
-    echo "app runtime qualification: a long-lived process exited during idle sampling" >&2
+    echo "app runtime qualification: a long-lived process exited at idle second ${elapsed:-unknown}" >&2
+    for process_record in \
+      "desktop:$desktop_pid" \
+      "agent:$agent_pid" \
+      "tachyon:$tachyon_pid" \
+      "fylo:$fylo_pid"; do
+      process_name=${process_record%%:*}
+      process_pid=${process_record#*:}
+      if kill -0 "$process_pid" 2>/dev/null; then
+        echo "app runtime qualification: $process_name pid $process_pid is alive" >&2
+      else
+        echo "app runtime qualification: $process_name pid $process_pid is missing" >&2
+      fi
+    done
+    printf '%s\n' "$snapshot" >&2
+    sleep 2
+    if kill -0 "$desktop_pid" 2>/dev/null; then
+      echo "app runtime qualification: desktop remained alive two seconds after the loss" >&2
+    else
+      echo "app runtime qualification: desktop exited within two seconds of the loss" >&2
+    fi
     return 1
   fi
   printf '%s\n' "$snapshot" | awk -v desktop="$desktop_pid" -v agent="$agent_pid" '
@@ -292,20 +327,51 @@ stop_topology() {
   done
 }
 
-crash_agent_and_stop_desktop() {
-  crashed_socket=$socket_path
-  kill -KILL "$agent_pid"
-  wait_for_exit "$agent_pid"
-  wait_for_exit "$fylo_pid"
-  crash_stop_ms=$(now_milliseconds)
-  kill -TERM "$desktop_pid"
-  wait "$desktop_pid" 2>/dev/null || true
-  desktop_pid=
-  crash_stopped_ms=$(now_milliseconds)
-  crash_shutdown_ms=$((crash_stopped_ms - crash_stop_ms))
+wait_for_recovered_generation() {
+  previous_capability=$1
+  attempts=0
+  while [ "$attempts" -lt 1500 ]; do
+    if ! kill -0 "$desktop_pid" 2>/dev/null; then
+      echo "app runtime qualification: desktop exited instead of recovering its topology" >&2
+      return 1
+    fi
+    next_capability=$(descriptor_capability)
+    if [ -n "$next_capability" ] && [ "$next_capability" != "$previous_capability" ]; then
+      discover_generation
+      if [ "$generation_capability" != "$previous_capability" ]; then
+        return 0
+      fi
+    fi
+    attempts=$((attempts + 1))
+    sleep 0.02
+  done
+  echo "app runtime qualification: recovered generation did not become healthy" >&2
+  return 1
+}
+
+recover_after_fault() {
+  component=$1
+  signal=$2
+  failed_pid=$3
+  previous_capability=$generation_capability
+  old_agent=$agent_pid
+  old_tachyon=$tachyon_pid
+  old_fylo=$fylo_pid
+  fault_ms=$(now_milliseconds)
+  kill "-$signal" "$failed_pid"
+  wait_for_recovered_generation "$previous_capability"
+  recovered_ms=$(now_milliseconds)
+  recovery_duration_ms=$((recovered_ms - fault_ms))
+  for old_pid in "$old_agent" "$old_tachyon" "$old_fylo"; do
+    ! kill -0 "$old_pid" 2>/dev/null
+  done
   test -f "$session_file"
-  test -S "$crashed_socket"
-  ! kill -0 "$tachyon_pid" 2>/dev/null
+  test -S "$socket_path"
+  case "$component" in
+    tachyon) tachyon_recovery_ms=$recovery_duration_ms ;;
+    agent) agent_recovery_ms=$recovery_duration_ms ;;
+    *) echo "app runtime qualification: unknown fault component" >&2; return 1 ;;
+  esac
 }
 
 "$repo_root/scripts/stage-app-bundle-macos.sh" "$stage_root"
@@ -324,17 +390,19 @@ mkdir -p "$qualification_home"
 start_topology
 first_startup_ms=$startup_ms
 token_digest=$(shasum -a 256 "$token_file" | awk '{print $1}')
+initial_capability=$generation_capability
 sleep "$warmup_seconds"
+discover_generation
+if [ "$generation_capability" = "$initial_capability" ]; then
+  warmup_recovery=no
+else
+  warmup_recovery=yes
+fi
 sample_idle_resources
-crash_agent_and_stop_desktop
-
-recovery_start_ms=$(now_milliseconds)
-start_topology
-recovery_ready_ms=$(now_milliseconds)
-recovery_ms=$((recovery_ready_ms - recovery_start_ms))
+recover_after_fault tachyon TERM "$tachyon_pid"
+recover_after_fault agent KILL "$agent_pid"
 second_token_digest=$(shasum -a 256 "$token_file" | awk '{print $1}')
 test "$token_digest" = "$second_token_digest"
-test "$socket_path" = "$crashed_socket"
 sleep "$warmup_seconds"
 stop_topology
 
@@ -343,6 +411,7 @@ app runtime qualification: PASS
 native target: macOS arm64
 authenticated startup: ${first_startup_ms} ms
 idle warmup: ${warmup_seconds} s
+recovery during warmup: ${warmup_recovery}
 idle duration: ${idle_seconds} s
 idle samples: ${sample_count}
 aggregate CPU from process time: ${aggregate_cpu}%
@@ -351,11 +420,12 @@ agent+Fylo CPU from process time: ${agent_stack_cpu}%
 aggregate sampled CPU mean/max: ${sampled_mean_cpu}% / ${sampled_max_cpu}%
 all-process RSS mean/max: ${mean_rss_kib} KiB / ${max_rss_kib} KiB
 desktop+agent RSS mean/max: ${mean_core_rss_kib} KiB / ${max_core_rss_kib} KiB
-crash-path desktop shutdown: ${crash_shutdown_ms} ms
-authenticated recovery after agent crash: ${recovery_ms} ms
+authenticated recovery after Tachyon termination: ${tachyon_recovery_ms} ms
+authenticated recovery after agent termination: ${agent_recovery_ms} ms
 clean shutdown: ${shutdown_ms} ms
+desktop survived both faults: yes
 stable token and Fylo root: yes
-stale Unix socket recovered: yes
+descriptor capability rotated safely: yes
 EOF
 
 if [ "$idle_seconds" -lt 600 ]; then

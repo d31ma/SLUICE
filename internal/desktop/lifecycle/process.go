@@ -21,11 +21,6 @@ type childProcess struct {
 	closeOnce sync.Once
 }
 
-type tachyonProcess struct {
-	server *yon.Server
-	done   chan struct{}
-}
-
 func startAgentProcess(_ context.Context, request agentRequest) (managedProcess, error) {
 	executable, err := runtimeexec.OpenExecutable(request.AgentBinary)
 	if err != nil {
@@ -110,7 +105,7 @@ func childExitError(err error) error {
 	if err == nil {
 		return nil
 	}
-	return fmt.Errorf("Sluice agent exited unsuccessfully") //nolint:staticcheck // Product name begins the operator-facing diagnostic.
+	return fmt.Errorf("Sluice agent exited unsuccessfully: %w", err) //nolint:staticcheck // Product name begins the operator-facing diagnostic.
 }
 
 func startTachyonProcess(ctx context.Context, request tachyonRequest) (managedProcess, error) {
@@ -131,17 +126,7 @@ func startTachyonProcess(ctx context.Context, request tachyonRequest) (managedPr
 	if err != nil {
 		return nil, err
 	}
-	return &tachyonProcess{server: server, done: make(chan struct{})}, nil
-}
-
-func (process *tachyonProcess) Done() <-chan struct{} {
-	return process.done
-}
-
-func (*tachyonProcess) Err() error { return nil }
-
-func (process *tachyonProcess) Close(ctx context.Context) error {
-	return process.server.Close(ctx)
+	return server, nil
 }
 
 func packagedEnvironment() runtimeexec.Environment {

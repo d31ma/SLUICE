@@ -18,6 +18,7 @@ func TestCoordinatorStartsAndStopsThePackagedTopologyInDependencyOrder(t *testin
 	stateRoot := filepath.Join(t.TempDir(), "state")
 	bundle := lifecycleBundleFixture(t)
 	events := make([]string, 0, 6)
+	var projectRoot string
 	agent := &recordingProcess{name: "agent", events: &events}
 	tachyon := &recordingProcess{name: "tachyon", events: &events}
 	coordinator, err := newCoordinator(Config{
@@ -43,6 +44,7 @@ func TestCoordinatorStartsAndStopsThePackagedTopologyInDependencyOrder(t *testin
 		},
 		startTachyon: func(_ context.Context, request tachyonRequest) (managedProcess, error) {
 			events = append(events, "tachyon:start")
+			projectRoot = request.ProjectRoot
 			if request.Bundle != bundle || request.Port == 0 {
 				t.Fatalf("tachyon request = %+v", request)
 			}
@@ -62,7 +64,9 @@ func TestCoordinatorStartsAndStopsThePackagedTopologyInDependencyOrder(t *testin
 			}
 			return nil
 		},
-		choosePort: func() (int, error) { return 43129, nil },
+		choosePort:   func() (int, error) { return 43129, nil },
+		restartDelay: boundedRestartDelay,
+		waitRestart:  waitForRestart,
 	})
 	if err != nil {
 		t.Fatalf("newCoordinator() error = %v", err)
@@ -87,7 +91,7 @@ func TestCoordinatorStartsAndStopsThePackagedTopologyInDependencyOrder(t *testin
 	if !reflect.DeepEqual(events, want) {
 		t.Fatalf("lifecycle events = %v, want %v", events, want)
 	}
-	if _, err := os.Stat(session.projectRoot); !errors.Is(err, os.ErrNotExist) {
+	if _, err := os.Stat(projectRoot); !errors.Is(err, os.ErrNotExist) {
 		t.Fatalf("ephemeral Tachyon project remains after shutdown: %v", err)
 	}
 }
@@ -116,7 +120,9 @@ func TestCoordinatorCleansUpAgentWhenTachyonCannotStart(t *testing.T) {
 		probeHealth: func(context.Context, string, string, managedProcess) error {
 			return errors.New("health must not run")
 		},
-		choosePort: func() (int, error) { return 43129, nil },
+		choosePort:   func() (int, error) { return 43129, nil },
+		restartDelay: boundedRestartDelay,
+		waitRestart:  waitForRestart,
 	})
 	if err != nil {
 		t.Fatalf("newCoordinator() error = %v", err)
