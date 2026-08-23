@@ -106,9 +106,10 @@ func (shell *DesktopShell) configureSystemTray(icon fyne.Resource) {
 }
 
 func (shell *DesktopShell) buildContent() fyne.CanvasObject {
-	status := widget.NewLabelWithStyle("Ready for configuration", fyne.TextAlignLeading, fyne.TextStyle{Bold: true})
-	description := widget.NewLabel("Connect an S3-compatible profile and choose a local folder to begin syncing.")
-	description.Wrapping = fyne.TextWrapWord
+	setupStatus, err := PresentStatus(StatusSnapshot{State: SyncStateSetup})
+	if err != nil {
+		panic("invalid built-in setup status: " + err.Error())
+	}
 	return container.NewBorder(
 		container.NewVBox(
 			widget.NewLabelWithStyle("Sluice", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
@@ -118,26 +119,12 @@ func (shell *DesktopShell) buildContent() fyne.CanvasObject {
 		nil,
 		nil,
 		container.NewVBox(
-			newAccessibleCard("Status", "Local agent", container.NewVBox(status, description)),
+			newStatusPanel(setupStatus),
 			newAccessibleCard(
 				"Get started",
 				"Your storage remains under your control",
 				widget.NewLabel("Profile and folder setup becomes available after the local service is connected."),
 			),
 		),
-	)
-}
-
-func newAccessibleCard(title, subtitle string, content fyne.CanvasObject) fyne.CanvasObject {
-	titleLabel := widget.NewLabelWithStyle(title, fyne.TextAlignLeading, fyne.TextStyle{Bold: true})
-	titleLabel.SizeName = theme.SizeNameHeadingText
-	body := container.NewVBox(
-		titleLabel,
-		widget.NewLabel(subtitle),
-		content,
-	)
-	return container.NewStack(
-		widget.NewCard("", "", nil),
-		container.NewPadded(container.NewPadded(body)),
 	)
 }

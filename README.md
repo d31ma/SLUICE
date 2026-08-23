@@ -128,8 +128,15 @@ and unsigned staging are deliberately not presented as support claims.
 The durable product, architecture, security, test, release, and phased delivery
 baseline is in [the project plan](docs/PROJECT_PLAN.md).
 
-## Prior art
+Frontend requirements informed by other cloud-drive clients follow an
+auditable [clean-room research protocol](docs/research/README.md). Sluice uses
+public documentation and controlled behavioral observations, not decompiled
+logic, private protocols, copied source, or vendor visual assets.
+
+## Prior art and research
 
 - `rclone bisync` for bidirectional object-storage synchronization.
 - `syncthing` for continuous reconciliation and conflict behavior.
-- Dropbox, OneDrive, and Google Drive for tray lifecycle and placeholder UX.
+- Dropbox, OneDrive, Google Drive, and Proton Drive for documented tray,
+  lifecycle, availability, recovery, and conflict behavior under the clean-room
+  policy in ADR 0009.

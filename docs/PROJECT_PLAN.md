@@ -2,7 +2,7 @@
 
 Status: Proposed implementation baseline
 
-Last updated: 2026-08-21
+Last updated: 2026-08-22
 
 Initial release scope: Windows, macOS, and Linux desktop
 Future scope: Android and iOS
@@ -578,6 +578,15 @@ Acceptance gate:
 - The unsigned target package topologies can legally and technically bundle
   the pinned `ty` and `fylo` runtimes and required notices.
 - No production phase depends on an unimplemented Tachyon or Fylo behavior.
+
+Parallel frontend research may continue during Phase 1 under ADR 0009. It
+produces a sourced behavior matrix, original design system, and executable
+provider-neutral presentation contracts. It may observe official clients only
+through the clean-room protocol, introduces no provider code or assets, makes
+no support claim, and does not authorize Phase 2 or Phase 5 production work
+before their gates. The initial shared projection distinguishes setup,
+connecting, up-to-date, syncing, paused, offline, attention, and conflict
+states; the agent-to-Yon mapping remains a later versioned vertical slice.
 
 ### Phase 2 - Local catalog and deterministic scanner
 
