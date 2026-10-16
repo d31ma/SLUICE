@@ -10,6 +10,7 @@ import (
 	"fyne.io/fyne/v2/driver/desktop"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
+	"fyne.io/systray"
 )
 
 const (
@@ -96,12 +97,19 @@ func (shell *DesktopShell) configureSystemTray(icon fyne.Resource) {
 		fyne.NewMenuItemSeparator(),
 		fyne.NewMenuItem("Quit", shell.RequestQuit),
 	))
+	// Fyne 2.8 does not forward application metadata to the native tray label.
+	// Keep the icon visibly and programmatically named until Fyne issue 6492 lands.
+	shell.application.Lifecycle().SetOnStarted(func() {
+		systray.SetTitle("Sluice")
+		systray.SetTooltip("Sluice")
+	})
 }
 
 func (shell *DesktopShell) buildContent() fyne.CanvasObject {
-	status := widget.NewLabelWithStyle("Ready for configuration", fyne.TextAlignLeading, fyne.TextStyle{Bold: true})
-	description := widget.NewLabel("Connect an S3-compatible profile and choose a local folder to begin syncing.")
-	description.Wrapping = fyne.TextWrapWord
+	setupStatus, err := PresentStatus(StatusSnapshot{State: SyncStateSetup})
+	if err != nil {
+		panic("invalid built-in setup status: " + err.Error())
+	}
 	return container.NewBorder(
 		container.NewVBox(
 			widget.NewLabelWithStyle("Sluice", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
@@ -111,8 +119,8 @@ func (shell *DesktopShell) buildContent() fyne.CanvasObject {
 		nil,
 		nil,
 		container.NewVBox(
-			widget.NewCard("Status", "Local agent", container.NewVBox(status, description)),
-			widget.NewCard(
+			newStatusPanel(setupStatus),
+			newAccessibleCard(
 				"Get started",
 				"Your storage remains under your control",
 				widget.NewLabel("Profile and folder setup becomes available after the local service is connected."),

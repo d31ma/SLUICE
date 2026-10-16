@@ -1,6 +1,6 @@
 # Filesystem qualification record
 
-Date: 2026-08-21
+Evidence through: 2026-08-22
 
 ## Environment exercised
 
@@ -10,11 +10,11 @@ Date: 2026-08-21
 | Go toolchain | Go 1.27.0 host tool runs as darwin/amd64 under translation; qualification binaries explicitly target darwin/arm64 |
 | Native temporary filesystem | APFS temporary directories plus an isolated 64 MiB APFS disk image for real ENOSPC |
 | Sluice source | `f179e8522ff22223d9de51e5828d8bfac9b6203c` |
-| Linux evidence | Native arm64 ordinary/race and destructive suites on an ext4-compatible Docker volume plus tmpfs at source `64ae711f9d6ec5b094044ac758ca6858addf92c9`; amd64 compile only |
-| Windows evidence | amd64 test executable compiled only |
+| Linux evidence | Native arm64 ordinary/race and destructive suites on an ext4-compatible Docker volume plus tmpfs at source `64ae711f9d6ec5b094044ac758ca6858addf92c9`; native amd64 repeat on ext4 plus tmpfs at source `0760adf1b362e04cd52f25d2c781217210734148` |
+| Windows evidence | Native amd64 ordinary/race and destructive suites on NTFS at source `0760adf1b362e04cd52f25d2c781217210734148` |
 
-Cross-compilation proves source compatibility only. It does not promote Linux
-or Windows filesystem support.
+Cross-compilation still proves source compatibility only. The promoted Linux
+amd64 and Windows amd64 results below come from native execution.
 
 ## Contract corpus
 
@@ -92,20 +92,36 @@ PASS TestAtomicInstallerCleansUpAfterRealENOSPC
 PASS TestAtomicInstallerRecoversAfterPreRenameTermination
 # Hostile parent swap, marked-orphan recovery, permission denial,
 # renameat2(RENAME_NOREPLACE), and EINVAL unsupported-filesystem mapping passed
+
+make filesystem-qualify-linux-amd64
+PASS
+ok github.com/d31ma/sluice/internal/filesystem (race-enabled Linux amd64 on ext4)
+PASS TestAtomicInstallerCleansUpAfterRealENOSPC (isolated tmpfs)
+PASS TestAtomicInstallerRecoversAfterPreRenameTermination
+filesystem Linux amd64 qualification: ext4, real tmpfs ENOSPC, pre-rename
+recovery, and race suites passed
+
+make filesystem-qualify-windows
+PASS
+ok github.com/d31ma/sluice/internal/filesystem (race-enabled Windows amd64 on NTFS)
+filesystem Windows qualification: NTFS reparse, junction, ACL, disk-full,
+pre-rename recovery, and race suites passed
 ```
 
-## Native gates still required
+The hosted commands above are recorded in
+[Linux amd64 ext4/tmpfs](2026-08-22-linux-amd64-ext4-tmpfs.md) and
+[Windows amd64 NTFS](2026-08-22-windows-amd64-ntfs.md).
 
-The macOS arm64 slice passes the recorded Phase 1 filesystem corpus. The spike
-is not globally green until equivalent suites run on the named Windows and
-Linux filesystems:
+## Native results
+
+The named Phase 1 filesystem spike is green on its recorded native environments:
 
 | Target | Status and required evidence |
 | --- | --- |
 | macOS arm64 / APFS | Passed: native ordinary and race suites, no-replace race, handle-relative parent-swap containment, permission denial, real ENOSPC cleanup, case and normalization collisions, and pre-rename termination/restart |
-| Windows / NTFS | Pending: native no-replace race, reparse point and junction rejection, ACL/permission denial, disk-full cleanup, forced termination around `MoveFileEx`, and restart verification |
+| Windows amd64 / NTFS | Passed: native ordinary/race suites, handle-relative parent-swap containment, reparse point and junction rejection, ACL denial, real VHD disk-full cleanup, no-replace rename, and forced pre-rename termination/restart |
 | Linux arm64 / ext4-compatible volume plus tmpfs | Passed: native ordinary/race suites on both filesystems, handle-relative hostile parent swap, permission denial, real tmpfs ENOSPC cleanup, `renameat2(RENAME_NOREPLACE)`, unsupported-filesystem error mapping, and pre-rename termination/restart |
-| Linux amd64 | Pending: repeat the complete Linux corpus natively |
+| Linux amd64 / ext4 plus tmpfs | Passed: native ordinary/race suites, handle-relative hostile parent swap, permission denial, real tmpfs ENOSPC cleanup, `renameat2(RENAME_NOREPLACE)`, unsupported-filesystem error mapping, and pre-rename termination/restart |
 
 Network, object-backed, and independently synchronized roots are outside the
 qualified filesystem set. The Fylo root has its own stricter placement gate.
@@ -113,11 +129,11 @@ qualified filesystem set. The Fylo root has its own stricter placement gate.
 ## Qualification decision
 
 The portable path grammar, conservative collision key, and stable-file atomic
-installation contract pass on the recorded native arm64 macOS/APFS
-environment. The permission, cancellation, real ENOSPC, collision,
-forced-pre-rename recovery, and hostile parent-swap gates pass on macOS arm64
-and Linux arm64 in their recorded filesystems. Windows and Linux amd64 remain
-compile-only.
+installation contract pass on the recorded native macOS arm64/APFS, Linux
+arm64/amd64 ext4-compatible and tmpfs, and Windows amd64/NTFS environments.
+The permission, cancellation, real ENOSPC, no-replace, link/reparse,
+forced-pre-rename recovery, and hostile parent-swap properties execute through
+the adapters applicable to each named platform.
 
 The installer's documented ambiguous outcome after a successful rename but a
 failed directory flush remains an input to the later durable operation-ledger

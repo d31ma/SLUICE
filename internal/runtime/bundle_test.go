@@ -32,10 +32,7 @@ func TestOpenMacOSBundleResolvesEveryPackagedRuntimeFromDesktopExecutable(t *tes
 	if err != nil {
 		t.Fatalf("OpenMacOSBundle() error = %v", err)
 	}
-	canonicalRoot, err := filepath.EvalSymlinks(root)
-	if err != nil {
-		t.Fatalf("canonicalize fixture: %v", err)
-	}
+	canonicalRoot := canonicalFixtureRoot(t, root)
 	want := runtimeexec.MacOSBundle{
 		Root:             canonicalRoot,
 		DesktopBinary:    filepath.Join(canonicalRoot, "Contents/MacOS/sluice-desktop"),
@@ -88,10 +85,7 @@ func TestOpenLinuxBundleResolvesEveryPackagedRuntimeFromAppRun(t *testing.T) {
 	if err != nil {
 		t.Fatalf("OpenLinuxBundle() error = %v", err)
 	}
-	canonicalRoot, err := filepath.EvalSymlinks(root)
-	if err != nil {
-		t.Fatalf("canonicalize fixture: %v", err)
-	}
+	canonicalRoot := canonicalFixtureRoot(t, root)
 	want := runtimeexec.Bundle{
 		Root:             canonicalRoot,
 		DesktopBinary:    filepath.Join(canonicalRoot, "AppRun"),
@@ -121,6 +115,58 @@ func TestOpenLinuxBundleRejectsDevelopmentAndIncompleteLayouts(t *testing.T) {
 	}
 }
 
+func TestOpenWindowsBundleResolvesEveryPackagedRuntime(t *testing.T) {
+	root := filepath.Join(t.TempDir(), "Sluice")
+	paths := map[string]os.FileMode{
+		"sluice-desktop.exe":                                   0o755,
+		"libexec/sluice-agent.exe":                             0o755,
+		"libexec/sluice-yon.exe":                               0o755,
+		"runtime/bin/ty.exe":                                   0o755,
+		"runtime/bin/fylo.exe":                                 0o755,
+		"resources/tachyon/server/routes/v1/health/yon.sluice": 0o600,
+		"app-manifest.json":                                    0o600,
+	}
+	for relative, mode := range paths {
+		writeBundleFixture(t, root, relative, mode)
+	}
+	if err := os.MkdirAll(filepath.Join(root, "licenses"), 0o700); err != nil {
+		t.Fatalf("create license fixture: %v", err)
+	}
+
+	bundle, err := runtimeexec.OpenWindowsBundle(filepath.Join(root, "sluice-desktop.exe"))
+	if err != nil {
+		t.Fatalf("OpenWindowsBundle() error = %v", err)
+	}
+	canonicalRoot := canonicalFixtureRoot(t, root)
+	want := runtimeexec.Bundle{
+		Root:             canonicalRoot,
+		DesktopBinary:    filepath.Join(canonicalRoot, "sluice-desktop.exe"),
+		AgentBinary:      filepath.Join(canonicalRoot, "libexec/sluice-agent.exe"),
+		YonBinary:        filepath.Join(canonicalRoot, "libexec/sluice-yon.exe"),
+		TachyonBinary:    filepath.Join(canonicalRoot, "runtime/bin/ty.exe"),
+		FyloBinary:       filepath.Join(canonicalRoot, "runtime/bin/fylo.exe"),
+		TachyonProject:   filepath.Join(canonicalRoot, "resources/tachyon"),
+		HealthRoute:      filepath.Join(canonicalRoot, "resources/tachyon/server/routes/v1/health/yon.sluice"),
+		PackageManifest:  filepath.Join(canonicalRoot, "app-manifest.json"),
+		LicenseDirectory: filepath.Join(canonicalRoot, "licenses"),
+	}
+	if bundle != want {
+		t.Fatalf("bundle = %#v, want %#v", bundle, want)
+	}
+}
+
+func TestOpenWindowsBundleRejectsDevelopmentAndIncompleteLayouts(t *testing.T) {
+	if _, err := runtimeexec.OpenWindowsBundle(filepath.Join(t.TempDir(), "sluice-desktop.exe")); !errors.Is(err, runtimeexec.ErrNotPackaged) {
+		t.Fatalf("development path error = %v, want ErrNotPackaged", err)
+	}
+
+	root := filepath.Join(t.TempDir(), "Sluice")
+	writeBundleFixture(t, root, "sluice-desktop.exe", 0o755)
+	if _, err := runtimeexec.OpenWindowsBundle(filepath.Join(root, "sluice-desktop.exe")); err == nil || errors.Is(err, runtimeexec.ErrNotPackaged) {
+		t.Fatalf("incomplete bundle error = %v, want packaged-layout failure", err)
+	}
+}
+
 func writeBundleFixture(t *testing.T, root, relative string, mode os.FileMode) {
 	t.Helper()
 	path := filepath.Join(root, filepath.FromSlash(relative))
@@ -135,4 +181,16 @@ func writeBundleFixture(t *testing.T, root, relative string, mode os.FileMode) {
 			t.Fatalf("make fixture executable: %v", err)
 		}
 	}
+}
+
+func canonicalFixtureRoot(t *testing.T, root string) string {
+	t.Helper()
+	if runtime.GOOS == "windows" {
+		return filepath.Clean(root)
+	}
+	canonical, err := filepath.EvalSymlinks(root)
+	if err != nil {
+		t.Fatalf("canonicalize fixture: %v", err)
+	}
+	return canonical
 }

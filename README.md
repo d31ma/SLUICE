@@ -89,11 +89,21 @@ unsigned four-process `Sluice.app` topology. The packaged app also passes a
 maintained ten-minute resource baseline, bounded Tachyon/agent recovery, and
 clean shutdown. Native Linux arm64 evidence covers the pinned runtimes,
 production Unix IPC, and a headless AppDir lifecycle; its real desktop-shell
-gate remains open. MinIO and RustFS pass the current S3 provider contract.
-Native Windows, Linux amd64 and graphical desktop execution, authorized AWS
-S3, and macOS visual/accessibility and real-login checks remain open, so no
-operating system, storage provider, installer, or release tier is supported
-yet.
+gate remains open. Native Linux amd64 now passes the same pinned-runtime and
+headless AppDir topology, while native macOS amd64 passes pinned runtimes and
+the non-graphical packaged topology. Windows portable-package staging and its
+ordinary Go suites run natively, but the pinned Fylo artifact advertises an
+insufficient machine-access capability and blocks the full chain. MinIO and
+RustFS pass the current S3 provider contract. Destructive Linux amd64 and
+Windows NTFS filesystem qualification now pass on their recorded native hosts.
+Interactive desktop execution, authorized AWS S3, and visual/accessibility and
+real-login checks remain open. The native package builders now opt into Fyne's
+experimental accessibility bridge. macOS arm64 now has visual window and named
+tray evidence, an eight-string native AX audit, close-to-tray/runtime
+continuity, tray restore, and clean application-menu Quit. VoiceOver
+announcement, keyboard, tray-menu, notification, real-login, logout, and
+shutdown gates remain. No operating system, storage provider, installer, or
+release tier is supported yet.
 
 Canonical development commands:
 
@@ -106,6 +116,11 @@ make build
 make linux-qualify-arm64
 ```
 
+Bootstrap downloads the pinned Go modules plus the checksum-locked Tachyon and
+Fylo tools for the current supported host into the ignored `tools/bin`
+directory. The complete quality gate uses those native runtimes for executable
+contract coverage.
+
 The authoritative Phase 1 evidence and remaining gates are in
 [the qualification matrix](docs/qualification/README.md). Cross-compilation
 and unsigned staging are deliberately not presented as support claims.
@@ -113,8 +128,15 @@ and unsigned staging are deliberately not presented as support claims.
 The durable product, architecture, security, test, release, and phased delivery
 baseline is in [the project plan](docs/PROJECT_PLAN.md).
 
-## Prior art
+Frontend requirements informed by other cloud-drive clients follow an
+auditable [clean-room research protocol](docs/research/README.md). Sluice uses
+public documentation and controlled behavioral observations, not decompiled
+logic, private protocols, copied source, or vendor visual assets.
+
+## Prior art and research
 
 - `rclone bisync` for bidirectional object-storage synchronization.
 - `syncthing` for continuous reconciliation and conflict behavior.
-- Dropbox, OneDrive, and Google Drive for tray lifecycle and placeholder UX.
+- Dropbox, OneDrive, Google Drive, and Proton Drive for documented tray,
+  lifecycle, availability, recovery, and conflict behavior under the clean-room
+  policy in ADR 0009.

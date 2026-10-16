@@ -65,8 +65,8 @@
       "id": "macos-amd64",
       "os": "darwin",
       "arch": "amd64",
-      "qualification": "not-native-tested",
-      "evidence": null,
+      "qualification": "native-staging-passed",
+      "evidence": "docs/qualification/runtime/2026-08-22-macos-amd64-hosted.md",
       "noticeDirectory": "Sluice.app/Contents/Resources/licenses",
       "artifacts": [
         {
@@ -113,8 +113,8 @@
       "id": "linux-amd64",
       "os": "linux",
       "arch": "amd64",
-      "qualification": "not-native-tested",
-      "evidence": null,
+      "qualification": "native-staging-passed",
+      "evidence": "docs/qualification/runtime/2026-08-22-linux-amd64-hosted.md",
       "noticeDirectory": "usr/share/doc/sluice/licenses",
       "artifacts": [
         {

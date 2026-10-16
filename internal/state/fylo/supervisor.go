@@ -184,6 +184,7 @@ func (supervisor *Supervisor) startProcess() (*machineProcess, error) {
 	}
 	diagnostics := &boundedDiagnostics{limit: diagnosticLimit}
 	command.Stderr = diagnostics
+	runtimeexec.ConfigureInterruptibleProcess(command)
 	if err := command.Start(); err != nil {
 		return nil, fmt.Errorf("start Fylo runtime: %w", err)
 	}

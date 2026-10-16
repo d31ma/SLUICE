@@ -2,10 +2,43 @@
 set -eu
 
 repo_root=$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd)
-stage_root=$(mktemp -d "${TMPDIR:-/tmp}/sluice-app-stage.XXXXXX")
-trap 'rm -rf "$stage_root"' EXIT HUP INT TERM
+smoke_flag=--native-smoke
+if [ "${1:-}" = --runtime-only ]; then
+  smoke_flag=--packaged-runtime-smoke
+  shift
+fi
+case "$#" in
+  0)
+    stage_root=$(mktemp -d "${TMPDIR:-/tmp}/sluice-app-stage.XXXXXX")
+    owns_stage=1
+    ;;
+  1)
+    stage_root=$1
+    owns_stage=0
+    case "$stage_root" in
+      /*) ;;
+      *) echo "app bundle test: staged root must be absolute" >&2; exit 2 ;;
+    esac
+    ;;
+  *)
+    echo "usage: $0 [--runtime-only] [ABSOLUTE_STAGED_DIRECTORY]" >&2
+    exit 2
+    ;;
+esac
 
-"$repo_root/scripts/stage-app-bundle-macos.sh" "$stage_root"
+cleanup() {
+  if [ "$owns_stage" -eq 1 ]; then
+    case "$stage_root" in
+      "${TMPDIR:-/tmp}"/sluice-app-stage.*) rm -R -- "$stage_root" ;;
+      *) echo "refusing to remove unexpected scratch path: $stage_root" >&2 ;;
+    esac
+  fi
+}
+trap cleanup EXIT HUP INT TERM
+
+if [ "$owns_stage" -eq 1 ]; then
+  "$repo_root/scripts/stage-app-bundle-macos.sh" "$stage_root"
+fi
 
 app="$stage_root/Sluice.app"
 desktop="$app/Contents/MacOS/sluice-desktop"
@@ -14,7 +47,7 @@ state_root="$stage_root/qualification-state"
 run_smoke() {
   PATH=/usr/bin:/bin "$desktop" \
     --background \
-    --native-smoke \
+    "$smoke_flag" \
     --qualification-state-root "$state_root" &
   desktop_pid=$!
 
@@ -61,4 +94,8 @@ if pgrep -f "$app/Contents/Helpers/sluice-agent" >/dev/null || \
   exit 1
 fi
 
-echo "app bundle test: packaged health, native IPC, restart, and clean shutdown passed"
+if [ "$smoke_flag" = --native-smoke ]; then
+  echo "app bundle test: packaged health, native IPC, native UI lifecycle, restart, and clean shutdown passed"
+else
+  echo "app bundle test: packaged health, native IPC, headless runtime lifecycle, restart, and clean shutdown passed"
+fi

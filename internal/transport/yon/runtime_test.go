@@ -209,7 +209,24 @@ func buildGoProgram(t *testing.T, ctx context.Context, name, packagePath string)
 	if err != nil {
 		t.Fatalf("open Go executable: %v", err)
 	}
-	environment := runtimeexec.AllowEnvironment("PATH", "HOME", "TMPDIR", "TMP", "TEMP", "SystemRoot", "GOTOOLCHAIN")
+	environment := runtimeexec.AllowEnvironment(
+		"PATH",
+		"HOME",
+		"USERPROFILE",
+		"HOMEDRIVE",
+		"HOMEPATH",
+		"LOCALAPPDATA",
+		"APPDATA",
+		"TMPDIR",
+		"TMP",
+		"TEMP",
+		"SystemRoot",
+		"GOPATH",
+		"GOMODCACHE",
+		"GOCACHE",
+		"GOROOT",
+		"GOTOOLCHAIN",
+	)
 	environment = append(
 		environment,
 		"CGO_ENABLED=0",
@@ -285,6 +302,7 @@ func startQualifiedAgent(
 	)
 	command.Stdout = io.Discard
 	command.Stderr = io.Discard
+	runtimeexec.ConfigureInterruptibleProcess(command)
 	if err := command.Start(); err != nil {
 		t.Fatalf("start qualified agent: %v", err)
 	}
@@ -295,7 +313,7 @@ func startQualifiedAgent(
 
 func (process *qualificationProcess) Close(ctx context.Context) error {
 	process.once.Do(func() {
-		if err := process.command.Process.Signal(os.Interrupt); err != nil && !errors.Is(err, os.ErrProcessDone) {
+		if err := runtimeexec.InterruptProcess(process.command.Process); err != nil && !errors.Is(err, os.ErrProcessDone) {
 			_ = process.command.Process.Kill()
 		}
 		select {
@@ -304,6 +322,9 @@ func (process *qualificationProcess) Close(ctx context.Context) error {
 			_ = process.command.Process.Kill()
 			<-process.done
 			process.err = ctx.Err()
+		}
+		if runtimeexec.IsExpectedInterruptExit(process.err) {
+			process.err = nil
 		}
 	})
 	return process.err

@@ -102,11 +102,15 @@ func TestCanonicalizeRootProducesAnAbsoluteDirectory(t *testing.T) {
 func TestCanonicalizeRootAcceptsRelativeConfigurationPaths(t *testing.T) {
 	t.Parallel()
 
-	directory := t.TempDir()
 	workingDirectory, err := os.Getwd()
 	if err != nil {
 		t.Fatalf("Getwd() error = %v", err)
 	}
+	directory, err := os.MkdirTemp(workingDirectory, ".sluice-relative-root-test-")
+	if err != nil {
+		t.Fatalf("MkdirTemp() error = %v", err)
+	}
+	t.Cleanup(func() { _ = os.RemoveAll(directory) })
 	relative, err := filepath.Rel(workingDirectory, directory)
 	if err != nil {
 		t.Fatalf("Rel() error = %v", err)

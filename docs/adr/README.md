@@ -14,3 +14,4 @@ decision.
 | [0006](0006-explicit-conflict-preservation.md) | Explicit conflict preservation | Accepted |
 | [0007](0007-evidence-based-support-tiers.md) | Evidence-based support tiers | Accepted |
 | [0008](0008-focused-fylo-protocol-supervisor.md) | Focused Fylo protocol supervisor | Accepted |
+| [0009](0009-clean-room-client-research.md) | Clean-room client UX research | Accepted |

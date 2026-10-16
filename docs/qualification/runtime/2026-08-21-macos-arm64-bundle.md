@@ -44,9 +44,10 @@ modified.
 
 ## Remaining Phase 1 gates
 
-- Windows, Linux amd64, and macOS amd64 require independent native runtime
-  staging and unsigned package-topology runs. Linux arm64 is recorded in
-  `2026-08-21-linux-arm64-container.md`.
+- Windows still requires a complete installed-runtime and unsigned
+  package-topology run. Linux amd64 and macOS amd64 now have independent
+  native headless staging records in `2026-08-22-linux-amd64-hosted.md` and
+  `2026-08-22-macos-amd64-hosted.md`; their interactive desktop gates remain.
 
 The unsigned application topology and bundled-runtime suite pass in the
 isolated native package recorded in

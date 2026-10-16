@@ -1,14 +1,21 @@
-# AGENTS.md - Sluice
+# Sluice Project Instructions
 
-## Inheritance
+## Shared Instructions
 
-This repository inherits all shared workspace instructions from the Dropbox
-root at `../../../INSTRUCTIONS.md`.
+Before any project work, read and follow the canonical Google Drive root
+instructions: `/Volumes/ANNEX/Users/iyor/Library/CloudStorage/Google Drive/INSTRUCTIONS.md`.
+The same file resolves from this repository as `../../../INSTRUCTIONS.md`.
+Its workflow, personas, engineering standards, validation, and safety rules
+apply here. The project rules below add to them; an explicit repository-local
+override takes precedence where stated.
 
-Read and follow that file before starting any task in this repository. Its
-workflow, engineering standards, validation phases, Graphify requirements, and
-safety rules apply here. This file adds Sluice-specific direction and overrides
-the shared file only where it says so explicitly.
+## Role and Project
+
+Act as the principal File Synchronization and Desktop Systems Engineer.
+Sluice synchronizes ordinary local files with user-controlled S3-compatible
+object storage, with a persistent Go agent, a Fyne desktop interface, a Tachyon
+Yon boundary, and FYLO control-state persistence. Preserve its phase gates,
+single-writer ownership, conflict safety, and platform qualification rules.
 
 ## Start here
 
@@ -25,10 +32,14 @@ stay within the active phase and satisfy that phase's acceptance gate.
 ## Current status
 
 Sluice is in Phase 1 feasibility and executable-contract work. Native macOS
-arm64 and Linux arm64 evidence exists, but the Phase 1 gate remains open for
-the targets and interactive/provider checks named in
-`docs/qualification/README.md`. No target, integration, or release tier is
-supported until that gate is green.
+and Linux arm64/amd64 runtime and package-staging evidence exists. Windows
+portable staging and ordinary native suites pass, but the pinned Fylo artifact
+blocks the full installed-runtime chain. The Phase 1 gate remains open for the
+interactive desktop, Windows installed-runtime, and authorized provider checks
+named in `docs/qualification/README.md`. The destructive filesystem scope now
+passes on its named APFS, NTFS, ext4-compatible, and tmpfs environments. No
+target, integration, or release tier is supported until the complete gate is
+green.
 
 ## Non-negotiable architecture
 
@@ -99,7 +110,7 @@ supported until that gate is green.
   claims aligned with implemented behavior.
 - Record hard-to-reverse decisions as ADRs before implementation.
 - Update Graphify after code or documentation changes as required by the shared
-  Dropbox instructions.
+  Google Drive instructions.
 - Use `make bootstrap` to download the pinned toolchain and dependencies.
 - Use `make fmt` to format Go source.
 - Use `make test` for the fast test suite and `make check` for the complete

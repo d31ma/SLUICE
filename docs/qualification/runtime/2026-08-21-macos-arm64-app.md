@@ -105,9 +105,9 @@ from the deliberately forced recovery checks.
 
 - Record visual tray/menu/notification behavior and accessibility on a
   registered build, and prove start-at-login during a real login.
-- Repeat package and lifecycle qualification natively on Windows, Linux amd64,
-  and macOS amd64. Linux arm64 has separate headless package evidence but still
-  needs a real graphical desktop run.
+- Complete package and lifecycle qualification on Windows. Linux arm64/amd64
+  and macOS amd64 have separate headless package evidence, but still need real
+  graphical desktop runs.
 
 ## Later release gates
 

@@ -42,10 +42,40 @@ jobs:
           libxkbcommon-dev libxkbcommon-x11-dev wayland-protocols xorg-dev
       - name: Test with the race detector
         run: go test -race ./...
+      - name: Native Linux amd64 filesystem qualification
+        if: runner.os == 'Linux'
+        run: ./scripts/test-filesystem-linux-amd64.sh
+      - name: Native Windows amd64 filesystem qualification
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: ./scripts/test-filesystem-windows.ps1
+      - name: Windows CRAP score ceiling
+        if: runner.os == 'Windows'
+        run: >-
+          go tool go-crap scan ./internal/filesystem/... --fail-above
+          --threshold 15 --min 15
+          --missing pessimistic --no-progress
       - name: Vet
         run: go vet ./...
       - name: Build
         run: go build ./...
+      - name: Probe hosted Windows Fyne lifecycle
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $false
+          $output = & go run -tags accessibility ./cmd/sluice-desktop --native-smoke 2>&1
+          $exitCode = $LASTEXITCODE
+          $output | ForEach-Object { Write-Host $_ }
+          if ($exitCode -eq 0) {
+              exit 0
+          }
+          if (($output -join "`n") -match 'native window initialization failed') {
+              Write-Warning 'Hosted runner has no usable native window; Windows remains unqualified.'
+              exit 0
+          }
+          exit $exitCode
 
   quality:
     name: Quality gates
@@ -77,3 +107,90 @@ jobs:
         run: make licenses
       - name: Documentation and contracts
         run: make docs
+
+  installed-runtime:
+    name: Installed runtimes ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+          - macos-15-intel
+    env:
+      SLUICE_REQUIRE_INSTALLED_RUNTIMES: "1"
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
+        with:
+          go-version-file: go.mod
+          cache: true
+          cache-dependency-path: go.sum
+      - name: Install Linux package build dependencies
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends \
+            dbus-x11 desktop-file-utils file procps ruby xauth xvfb \
+            libdecor-0-dev libegl1-mesa-dev libgl1-mesa-dev \
+            libwayland-dev libxkbcommon-dev libxkbcommon-x11-dev \
+            wayland-protocols xorg-dev
+      - name: Stage native Linux amd64 AppDir
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          set -euo pipefail
+          stage_root="$RUNNER_TEMP/sluice-linux-package"
+          ./scripts/stage-app-bundle-linux.sh "$stage_root"
+          echo "SLUICE_LINUX_STAGE=$stage_root" >> "$GITHUB_ENV"
+          echo "$stage_root/Sluice.AppDir/usr/lib/sluice/runtime/bin" >> "$GITHUB_PATH"
+      - name: Stage native Windows amd64 portable package
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $stageRoot = Join-Path $env:RUNNER_TEMP 'sluice-windows-package'
+          & ./scripts/stage-app-bundle-windows.ps1 -StageRoot $stageRoot
+          "SLUICE_WINDOWS_STAGE=$stageRoot" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          $runtimeDir = Join-Path $stageRoot 'Sluice/runtime/bin'
+          $runtimeDir | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+      - name: Stage native macOS amd64 application package
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -euo pipefail
+          stage_root="$RUNNER_TEMP/sluice-macos-package"
+          ./scripts/stage-app-bundle-macos.sh "$stage_root"
+          echo "SLUICE_MACOS_STAGE=$stage_root" >> "$GITHUB_ENV"
+          echo "$stage_root/Sluice.app/Contents/Resources/runtime/bin" >> "$GITHUB_PATH"
+      - name: Record native runner
+        shell: bash
+        run: |
+          go version
+          go env GOOS GOARCH
+      - name: Run installed-runtime and production IPC contracts
+        run: >-
+          go test -race -count=1
+          ./internal/runtime ./internal/state/fylo ./internal/transport/ipc
+          ./internal/agent ./internal/transport/localapi ./internal/transport/yon
+          ./cmd/sluice-agent
+      - name: Exercise native Windows package topology twice
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: >-
+          ./scripts/test-app-bundle-windows.ps1
+          -StagedRoot $env:SLUICE_WINDOWS_STAGE
+      - name: Exercise native macOS package runtime topology twice
+        if: runner.os == 'macOS'
+        shell: bash
+        run: ./scripts/test-app-bundle-macos.sh --runtime-only "$SLUICE_MACOS_STAGE"
+      - name: Exercise native Linux package topology twice
+        if: runner.os == 'Linux'
+        shell: bash
+        run: ./scripts/test-app-bundle-linux.sh "$SLUICE_LINUX_STAGE"

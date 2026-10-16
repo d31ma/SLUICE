@@ -1,9 +1,7 @@
 package yon
 
 import (
-	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 )
 
@@ -58,7 +56,7 @@ func TestValidateServeConfigBoundaries(t *testing.T) {
 	if err != nil {
 		t.Fatalf("validateServeConfig() valid boundary error: %v", err)
 	}
-	if !strings.HasPrefix(got, string(os.PathSeparator)) {
+	if !filepath.IsAbs(got) {
 		t.Fatalf("validated project = %q, want absolute path", got)
 	}
 }

@@ -54,10 +54,10 @@ type Session struct {
 type generation struct {
 	tachyon              managedProcess
 	agent                managedProcess
-	resources            generationResources
 	descriptorCapability string
 	endpoint             string
 	projectRoot          string
+	resources            generationResources
 }
 
 type managedProcess interface {

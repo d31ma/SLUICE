@@ -3,12 +3,26 @@ set -eu
 
 repo_root=$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd)
 manifest="$repo_root/packaging/runtime/manifest.json"
-target_id=macos-arm64
-
-if [ "$(uname -s)" != Darwin ] || [ "$(uname -m)" != arm64 ]; then
-  echo "runtime staging: macos-arm64 requires a native Darwin arm64 host" >&2
+if [ "$(uname -s)" != Darwin ]; then
+  echo "runtime staging: macOS requires a native Darwin host" >&2
   exit 1
 fi
+case "$(uname -m)" in
+  arm64)
+    target_id=macos-arm64
+    goarch=arm64
+    fylo_target=macos-arm64
+    ;;
+  x86_64)
+    target_id=macos-amd64
+    goarch=amd64
+    fylo_target=macos-x64
+    ;;
+  *)
+    echo "runtime staging: unsupported macOS architecture $(uname -m)" >&2
+    exit 1
+    ;;
+esac
 
 if [ "$#" -ne 1 ]; then
   echo "usage: $0 ABSOLUTE_EMPTY_STAGE_DIRECTORY" >&2
@@ -91,14 +105,18 @@ done < "$notice_rows"
 ty_path="$stage_root/Sluice.app/Contents/Resources/runtime/bin/ty"
 fylo_path="$stage_root/Sluice.app/Contents/Resources/runtime/bin/fylo"
 
-case "$(file -b "$ty_path")" in
-  *"Mach-O 64-bit executable arm64"*) ;;
-  *) echo "runtime staging: ty is not a Mach-O arm64 executable" >&2; exit 1 ;;
-esac
-case "$(file -b "$fylo_path")" in
-  *"Mach-O 64-bit executable arm64"*) ;;
-  *) echo "runtime staging: fylo is not a Mach-O arm64 executable" >&2; exit 1 ;;
-esac
+validate_macho() {
+  program=$1
+  label=$2
+  description=$(file -b "$program")
+  case "$goarch:$description" in
+    arm64:*"Mach-O 64-bit executable arm64"*) ;;
+    amd64:*"Mach-O 64-bit executable x86_64"*) ;;
+    *) echo "runtime staging: $label is not Mach-O $goarch" >&2; exit 1 ;;
+  esac
+}
+validate_macho "$ty_path" ty
+validate_macho "$fylo_path" fylo
 
 expected_version=$(ruby -rjson -e 'puts JSON.parse(File.read(ARGV.fetch(0))).fetch("releaseVersion")' "$manifest")
 actual_ty_version=$("$ty_path" --version)
@@ -107,14 +125,16 @@ if [ "$actual_ty_version" != "$expected_version" ]; then
   exit 1
 fi
 
+# shellcheck disable=SC2016
 "$fylo_path" version --output json | ruby -rjson -e '
   report = JSON.parse($stdin.read)
   expected_version = ARGV.fetch(0)
   expected_commit = ARGV.fetch(1)
+  expected_target = ARGV.fetch(2)
   abort "runtime staging: Fylo version mismatch" unless report["runtimeVersion"] == expected_version
   abort "runtime staging: Fylo commit mismatch" unless report["commit"] == expected_commit
-  abort "runtime staging: Fylo build target mismatch" unless report["buildTarget"] == "macos-arm64"
-' "$expected_version" "e236162508f6789f980fa7ca136a6671938030cb"
+  abort "runtime staging: Fylo build target mismatch" unless report["buildTarget"] == expected_target
+' "$expected_version" "e236162508f6789f980fa7ca136a6671938030cb" "$fylo_target"
 
 rm -rf "$download_root"
-echo "runtime staging: macos-arm64 payload passed in $stage_root"
+echo "runtime staging: $target_id payload passed in $stage_root"

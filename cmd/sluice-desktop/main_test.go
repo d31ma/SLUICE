@@ -81,7 +81,44 @@ func TestRunDesktopOptions(t *testing.T) {
 	}
 }
 
-func TestRunAcceptsAnIsolatedStateRootOnlyForNativeSmoke(t *testing.T) {
+func TestRunPackagedRuntimeSmokeOptions(t *testing.T) {
+	stateRoot := filepath.Join(t.TempDir(), "qualification-state")
+	var got desktopOptions
+	var stderr bytes.Buffer
+	exitCode := run(
+		context.Background(),
+		[]string{"--packaged-runtime-smoke", "--qualification-state-root", stateRoot},
+		&bytes.Buffer{},
+		&stderr,
+		"/installed/sluice-desktop",
+		func(string) (autostart.Manager, error) { return nil, errors.New("unused") },
+		func(_ context.Context, options desktopOptions) error { got = options; return nil },
+	)
+	if exitCode != 0 {
+		t.Fatalf("run() exit code = %d, stderr = %q", exitCode, stderr.String())
+	}
+	if !got.packagedRuntimeSmoke || got.nativeSmoke || got.stateRoot != stateRoot {
+		t.Fatalf("desktop options = %+v, want packaged runtime smoke with isolated state", got)
+	}
+}
+
+func TestRunRejectsConflictingSmokeModes(t *testing.T) {
+	var stderr bytes.Buffer
+	exitCode := run(
+		context.Background(),
+		[]string{"--native-smoke", "--packaged-runtime-smoke"},
+		&bytes.Buffer{},
+		&stderr,
+		"/installed/sluice-desktop",
+		func(string) (autostart.Manager, error) { return nil, errors.New("unused") },
+		func(context.Context, desktopOptions) error { return errors.New("desktop must not run") },
+	)
+	if exitCode != 2 || stderr.Len() == 0 {
+		t.Fatalf("conflicting smoke modes = exit %d, stderr %q", exitCode, stderr.String())
+	}
+}
+
+func TestRunAcceptsAnIsolatedStateRootOnlyForQualificationSmoke(t *testing.T) {
 	stateRoot := filepath.Join(t.TempDir(), "qualification-state")
 	var got desktopOptions
 	exitCode := run(
@@ -109,6 +146,27 @@ func TestRunAcceptsAnIsolatedStateRootOnlyForNativeSmoke(t *testing.T) {
 	)
 	if exitCode != 2 || stderr.Len() == 0 {
 		t.Fatalf("unbounded state override = exit %d, stderr %q", exitCode, stderr.String())
+	}
+}
+
+func TestAwaitPackagedRuntimeSmoke(t *testing.T) {
+	if err := awaitPackagedRuntimeSmoke(context.Background(), 0); err != nil {
+		t.Fatalf("awaitPackagedRuntimeSmoke() error = %v", err)
+	}
+
+	cancelled, cancel := context.WithCancel(context.Background())
+	cancel()
+	if err := awaitPackagedRuntimeSmoke(cancelled, nativeSmokeDuration); !errors.Is(err, context.Canceled) {
+		t.Fatalf("awaitPackagedRuntimeSmoke() error = %v, want context cancellation", err)
+	}
+}
+
+func TestUnpackagedRuntimeSmokeError(t *testing.T) {
+	if err := unpackagedRuntimeSmokeError(false); err != nil {
+		t.Fatalf("ordinary unpackaged launch error = %v", err)
+	}
+	if err := unpackagedRuntimeSmokeError(true); err == nil {
+		t.Fatal("required packaged runtime smoke accepted an unpackaged launch")
 	}
 }
 
@@ -208,6 +266,18 @@ func TestExerciseNativeShellRunsCompleteLifecycle(t *testing.T) {
 		if shell.events[index] != want[index] {
 			t.Fatalf("events = %v, want %v", shell.events, want)
 		}
+	}
+}
+
+func TestNativeSmokeLogFailureRejectsWindowInitializationErrors(t *testing.T) {
+	if err := nativeSmokeLogFailure("Fyne error:  window creation error\n  Cause: APIUnavailable: WGL"); err == nil {
+		t.Fatal("native smoke accepted a logged window creation failure")
+	}
+	if err := nativeSmokeLogFailure("Fyne error:  Failed to send notification\n"); err != nil {
+		t.Fatalf("notification permission outcome rejected native window lifecycle: %v", err)
+	}
+	if err := nativeSmokeLogFailure(""); err != nil {
+		t.Fatalf("clean native smoke log rejected: %v", err)
 	}
 }
 
