@@ -8,7 +8,7 @@ contributions under the MIT License.
 
 Read:
 
-1. `AGENTS.md` and the inherited Dropbox instructions;
+1. `CLAUDE.md` and the inherited shared instructions in `~/.claude/CLAUDE.md`;
 2. `CONTEXT.md` and `CONTEXT-MAP.md`;
 3. `docs/PROJECT_PLAN.md` and the active phase gate; and
 4. relevant ADRs and public contracts.
